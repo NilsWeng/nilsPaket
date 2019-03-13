@@ -1,7 +1,8 @@
-Package: anRpackage
+Package: nilsPaket
 Type: Package
 Title: What the package does (short line)
 Version: 1.0
+Encoding: UTF-8
 Date: 2019-03-12
 Author: Who wrote it
 Maintainer: Who to complain to <yourfault@somewhere.net>
