@@ -28,7 +28,10 @@ get_high_mutations <- function(MC3_file,type,treshold){
   
   high_mut_samples_vector <- c()
   
-  for (cancer in as.vector(unique(counts$Study.Abbreviation))){
+  cancer_types <- as.vector(unique(counts$Study.Abbreviation))
+  cancer_types <- as.vector(na.omit(cancer_types))
+  
+  for (cancer in cancer_types){
     
     
     counts_cancer <- counts %>% filter(Study.Abbreviation == cancer)
