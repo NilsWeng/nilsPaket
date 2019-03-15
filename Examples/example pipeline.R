@@ -54,9 +54,9 @@ load("MC3.rda")
 #Extract highly mutated samples
 #Stopped working all of a sudden , cant find Tumor_Sample_Barcode
 S <- 3
-type <- "SD"
+type <- "SD" #SD or absolute
 
-high_mutation_samples <- get_high_mutations(MC3,"SD",3)
+high_mutation_samples <- get_high_mutations(MC3,type,S)
 
 
 #Subselction of MC3 
@@ -93,8 +93,24 @@ if (!dir.exists(file.path(paste(main_wd,"/output",sep="")))){
   save(all_vcfs,file=paste(S,"_all_vcfs.rda",sep=""))
 }  
 
+file_name <- paste(S,"_all_vcfs.rda",sep="")
 dir_name <- paste(main_wd,"/output",sep="")
-load(paste(S,"_all_vcfs.rda",sep=""))
+setwd(dir_name)
+
+if(!file.exists(file_name)){
+  setwd(paste(main_wd,"/VCF_files",sep=""))
+  all_vcfs <- read_vcfs_as_granges(vcf_list,vcf_list_names,ref_genome)
+  setwd(dir_name)
+  save(all_vcfs,file=paste(S,"_all_vcfs.rda",sep=""))
+  
+} else {
+  setwd(dir_name)
+  load(file_name)
+  
+}
+
+#dir_name <- paste(main_wd,"/output",sep="")
+#load(paste(S,"_all_vcfs.rda",sep=""))
 
 
 
@@ -118,12 +134,20 @@ setwd(main_wd)
 #Read cosmic signatures
 cosmic_signatures <- as.matrix(read.table("cosmic_signatures_extended.txt",header=TRUE))
 
+
+#Just plot number in heatmap.
+sampleDF <- data.frame("TCGA_code"=colnames(mutational_matrix))
+sampleDF$sample <- c(1:ncol(mutational_matrix))
+colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
+
+
 #Shorten TCGA-barcode
-colnames(mutational_matrix) <- gsub("TCGA-","",
-                                    gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",colnames(mutational_matrix)))
+#colnames(mutational_matrix) <- gsub("TCGA-","",
+#                                    gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",colnames(mutational_matrix)))
 
 #Create a cosine similarity matrix
 cos_sim_samples_cosmic <- cos_sim_matrix(mutational_matrix, cosmic_signatures)
+
 #Cluster cosmic signatures
 hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 #store signatures in new order
@@ -134,7 +158,7 @@ print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, clus
 
 
 #Cluster samples based on cosine similarity
-N <- 14
+N <- 10
 sample_cluster <- hclust(dist(cos_sim_samples_cosmic,method="euclidean"),method="complete")
 plot_cluster(sample_cluster,N,2.2)
 
@@ -143,31 +167,54 @@ plot_cluster(sample_cluster,N,2.2)
 
 
 #plot cluster in heatmap
-ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,14)
+ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,8)
+ClusterDF$sample <- as.character(ClusterDF$sample)
+sampleDF$sample <- as.character(sampleDF$sample)
+#ClusterDF$sample <- as.numeric(ClusterDF$sample) 
+ClusterDF<-left_join(ClusterDF,sampleDF,by="sample")
+ClusterDF$TSS.Code <- gsub("TCGA-","",gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",ClusterDF$TCGA_code))
+TSS2Study <- read.table("TSS2Studyabb.txt",header=TRUE)
+ClusterDF <- left_join(ClusterDF,TSS2Study,by="TSS.Code")
+ClusterDF <- ClusterDF %>% select("sample","cluster","TCGA_code","Study.Abbreviation")
+
+
+load("MC3.rda")
+mutDF <- count(MC3,"Tumor_Sample_Barcode")
+colnames(mutDF) <- c("TCGA_code","mutations")
+ClusterDF <- left_join(ClusterDF,mutDF,by="TCGA_code")
+
+
+
+rm(TSS2Study,sampleDF,MC3)
+
 
 #Manual edit
 #Split cluster 3 into 2 
-remove <- "13-0889"
-new <- c("YC-A89H","DK-A1AC","BT-A2LB")
+remove <- "TCGA-13-0889-01A-01W-0420-08"
+new <- c("TCGA-YC-A89H-01A-11D-A364-08","TCGA-DK-A1AC-01A-11D-A13W-08","TCGA-BT-A2LB-01A-11D-A18F-08")
 ClusterDF[ClusterDF$sample %in% new,2] <- "3a"
-ClusterDF <- ClusterDF[!ClusterDF$sample %in% remove ,]
-
+ClusterDF <- ClusterDF[!ClusterDF$TCGA_code %in% remove ,]
 
 
 #Find signatures in cluster
+#Make sure that rownames of cos_sim matches ClusterDF$samples
 get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
 
+rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
+
+# CNV_SNV plot ------------------------------------------------------------
 
 
+setwd(main_wd)
+genes <- as.character(DNA_repair$hgnc_symbol)
+samples <- ClusterDF$TCGA_code
+samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
-#Read GISTIC file
-file_list <- list.files(pattern="all_data_by_genes.txt",recursive = TRUE)
-GISTIC <- read_GISTIC(file_list,DNA_repair$hgnc_symbol)
+genes<- genes[1:30]
+samples <- samples[1:30]
 
 
-
-
-
+plot_CNV_SNV(samples,genes)
 
 
 
