@@ -15,7 +15,7 @@ main_wd <- "C:/Users/Nils_/OneDrive/Skrivbord/Main/Data"
 setwd(main_wd)
 
 #Load files with DNA_repair proteins
-DNA_repair <- read.csv("DNA_repair.csv",sep=";")
+DNA_repair <- read.csv("DNA_repair_extended.csv",sep=";")
 
 #Set reference genome
 ref_genome = "BSgenome.Hsapiens.UCSC.hg19"
@@ -167,7 +167,7 @@ plot_cluster(sample_cluster,N,2.2)
 
 
 #plot cluster in heatmap
-ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,8)
+ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,14)
 ClusterDF$sample <- as.character(ClusterDF$sample)
 sampleDF$sample <- as.character(sampleDF$sample)
 #ClusterDF$sample <- as.numeric(ClusterDF$sample) 
@@ -206,16 +206,110 @@ rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","mai
 
 
 setwd(main_wd)
-genes <- as.character(DNA_repair$hgnc_symbol)
-samples <- ClusterDF$TCGA_code
+
+samples <- ClusterDF %>% filter(cluster == 3) %>% select(TCGA_code)
+samples <- as.character(samples$TCGA_code)
 samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
-genes<- genes[1:30]
-samples <- samples[1:30]
+
+genes <- as.character(DNA_repair$hgnc_symbol)
+
+#################################################################################
+#Test MMR cluster 6,7,9
+samples <- ClusterDF %>% filter(cluster %in% c(2)) %>% select(TCGA_code)
+samples <- as.character(samples$TCGA_code)
+samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
 
-plot_CNV_SNV(samples,genes)
 
+genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+genes <- genes %>% filter(System == "NER")
+genes <- as.character(genes$Gen)
+
+plot_CNV_SNV(samples,genes,"TEST")
+
+
+
+#Just take random genes 
+samples <- as.character(sample(MC3$Tumor_Sample_Barcode,40))
+samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+genes <- as.character(unique(MC3$Hugo_Symbol[1:40]))
+plot_CNV_SNV(samples,genes,"Random")
+
+####################################################
+
+
+#Plot and save all cluster
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/CNV_SNV")
+pdf(file="one_cluster_a_time.pdf",width=16, height=10)
+
+for (Cluster in unique(ClusterDF$cluster)){
+  
+  setwd(main_wd)
+  
+  samples <- ClusterDF %>% filter(cluster == Cluster) %>% select(TCGA_code)
+  samples <- as.character(samples$TCGA_code)
+  samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+  
+  
+  genes <- as.character(DNA_repair$hgnc_symbol)
+  print(plot_CNV_SNV(samples,genes,paste("Cluster",Cluster,sep=" ")))
+  
+  
+}
+
+dev.off()
+
+
+
+#Function- Given a set of samples and genes get expression for these
+
+
+mRNA_exp <- function(samples,genes){
+  
+  setwd(main_wd)
+  file_list <- list.files(pattern="_normalized__data.data.txt",recursive = TRUE)
+  
+  read_mRNASeq <- function(files){
+    
+    
+    
+    Table <- fread(files,header=TRUE,stringsAsFactors = FALSE)
+    #Filter only for genes involved in DNA-repair
+    Table$`Hybridization REF` <- gsub("\\|.*$","",Table$`Hybridization REF`)
+    #Table <- Table %>% filter(Table$`Hybridization REF` %in% genes)
+    
+    print("done with")
+    return(Table)
+    
+    
+  }
+  
+  #file_list <- file_list[1:3]
+  
+  dataset <- do.call("cbind",lapply(file_list ,read_mRNASeq))
+  dataset <- dataset[, !duplicated(colnames(dataset))]
+  
+  setwd(main_wd)
+  write.table(dataset,"PANCAN_mRNA_expression.txt")
+  save(dataset,file="PANCAN_mRNA_expression.rda")
+  
+  
+}
+
+
+
+get_cancer_abb <- function(TCGA_code){
+  
+  setwd(main_wd)
+  TSS2Study <- read.table("TSS2Studyabb.txt",header=TRUE)
+  
+  TSS_code <- gsub("TCGA-","",gsub(""))
+  
+  
+  
+  
+}
 
 
 

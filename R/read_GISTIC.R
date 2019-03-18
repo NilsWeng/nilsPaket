@@ -24,7 +24,7 @@ read_GISTIC <- function(files2read,selectProteins){
     
     Table <- fread(files,header=TRUE,stringsAsFactors = FALSE)
     #Filter only for genes involved in DNA-repair
-    Table <- Table %>% filter(Table$`Gene Symbol` %in% DNA_repair$hgnc_symbol)
+    Table <- Table %>% filter(Table$`Gene Symbol` %in% selectProteins)
     return(Table)
     
     

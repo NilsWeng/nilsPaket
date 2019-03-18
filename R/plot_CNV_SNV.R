@@ -3,9 +3,10 @@
 #' Function that given a list of genes and samples plot the CNV/SNV correlation heatmap 
 #' @param samples List of sample-id 
 #' @param genes List of Hugo- gene id:s
+#'@param title1 Plot title
 #' @export
 #' @examples
-#' plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"))
+#' plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title")
 
 #' @import ggplot2
 #' @import dplyr
@@ -16,14 +17,15 @@
 
 
 
-plot_CNV_SNV <- function(samples,genes){
+plot_CNV_SNV <- function(samples,genes,title1){
   
   #Read GISTIC-files containing copynumber calls
   
+  setwd(main_wd)
   file_list <- list.files(pattern="all_thresholded.by_genes.txt",recursive = TRUE)
   GISTIC <- read_GISTIC(file_list,genes)
   
-  #select on samples present in high_mut_samples
+  #select on samples present in samples
   keep <- c(samples,c("Gene Symbol","Locus ID","Cytoband"))
   colnames(GISTIC) <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",colnames(GISTIC))
   GISTIC <- GISTIC[, colnames(GISTIC) %in% keep]
@@ -39,6 +41,13 @@ plot_CNV_SNV <- function(samples,genes){
   MC3 <- MC3[MC3$Hugo_Symbol %in% genes ,]
   #Modify sample-id
   MC3$Tumor_Sample_Barcode <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","", MC3$Tumor_Sample_Barcode)
+  
+  #Common genes
+  common_genes <- intersect(unique(MC3$Hugo_Symbol),GISTIC$`Gene Symbol`)
+  
+  MC3 <- MC3[MC3$Hugo_Symbol %in% common_genes ,]
+  GISTIC <- GISTIC[GISTIC$`Gene Symbol` %in% common_genes ,]
+  
   #Filter on samples
   MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% samples ,]
   
@@ -49,12 +58,7 @@ plot_CNV_SNV <- function(samples,genes){
   
   MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% common_samples ,]
   GISTIC <- GISTIC %>% select("Gene Symbol","Locus ID","Cytoband",common_samples)
-  
-  #Common genes
-  common_genes <- intersect(unique(MC3$Hugo_Symbol),GISTIC$`Gene Symbol`)
-  
-  MC3 <- MC3[MC3$Hugo_Symbol %in% common_genes ,]
-  GISTIC <- GISTIC[GISTIC$`Gene Symbol` %in% common_genes ,]
+
   
   MC3 <- MC3[order(MC3$Hugo_Symbol) ,]
   GISTIC <- GISTIC[order(GISTIC$`Gene Symbol`) ,]
@@ -164,7 +168,7 @@ plot_CNV_SNV <- function(samples,genes){
     #redrawing tiles to remove cross lines from legend
     geom_tile(colour="white",size=0.25)+
     #remove axis labels, add title
-    labs(x="",y="",title="")+
+    labs(x="",y="",title=title1)+
     #remove extra space
     #scale_y_discrete(expand=c(0,0),labels = y_names)+  
     scale_y_discrete(expand=c(0,0))+

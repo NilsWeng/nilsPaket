@@ -4,16 +4,18 @@
 \alias{plot_CNV_SNV}
 \title{plot_CNV_SNV}
 \usage{
-plot_CNV_SNV(samples, genes)
+plot_CNV_SNV(samples, genes, title1)
 }
 \arguments{
 \item{samples}{List of sample-id}
 
 \item{genes}{List of Hugo- gene id:s}
+
+\item{title1}{Plot title}
 }
 \description{
 Function that given a list of genes and samples plot the CNV/SNV correlation heatmap
 }
 \examples{
-plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"))
+plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title")
 }
