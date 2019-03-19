@@ -158,7 +158,7 @@ print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, clus
 
 
 #Cluster samples based on cosine similarity
-N <- 10
+N <- 14
 sample_cluster <- hclust(dist(cos_sim_samples_cosmic,method="euclidean"),method="complete")
 plot_cluster(sample_cluster,N,2.2)
 
@@ -190,10 +190,10 @@ rm(TSS2Study,sampleDF,MC3)
 
 #Manual edit
 #Split cluster 3 into 2 
-remove <- "TCGA-13-0889-01A-01W-0420-08"
-new <- c("TCGA-YC-A89H-01A-11D-A364-08","TCGA-DK-A1AC-01A-11D-A13W-08","TCGA-BT-A2LB-01A-11D-A18F-08")
-ClusterDF[ClusterDF$sample %in% new,2] <- "3a"
-ClusterDF <- ClusterDF[!ClusterDF$TCGA_code %in% remove ,]
+#remove <- "TCGA-13-0889-01A-01W-0420-08"
+#new <- c("TCGA-YC-A89H-01A-11D-A364-08","TCGA-DK-A1AC-01A-11D-A13W-08","TCGA-BT-A2LB-01A-11D-A18F-08")
+#ClusterDF[ClusterDF$sample %in% new,2] <- "3a"
+#ClusterDF <- ClusterDF[!ClusterDF$TCGA_code %in% remove ,]
 
 
 #Find signatures in cluster
@@ -216,17 +216,19 @@ genes <- as.character(DNA_repair$hgnc_symbol)
 
 #################################################################################
 #Test MMR cluster 6,7,9
-samples <- ClusterDF %>% filter(cluster %in% c(2)) %>% select(TCGA_code)
+samples <- ClusterDF %>% filter(cluster %in% c(6,7,9)) %>% select(TCGA_code)
+#samples <- ClusterDF %>% select(TCGA_code)
+#samples <- unique(samples)
 samples <- as.character(samples$TCGA_code)
 samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
-
 
 
 genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- genes %>% filter(System == "NER")
 genes <- as.character(genes$Gen)
 
-plot_CNV_SNV(samples,genes,"TEST")
+
+plot_CNV_SNV(samples,genes,"All at the same time")
 
 
 
@@ -265,51 +267,102 @@ dev.off()
 #Function- Given a set of samples and genes get expression for these
 
 
-mRNA_exp <- function(samples,genes){
+# mRNA Exp ----------------------------------------------------------------
+genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+genes <- as.character(genes$Gen)
+genes <- unique(genes) #unrefined gene list
+mRNA_DF <- mRNA_exp(genes)
+
+
+
+#Try AID/APOBEC 
+setwd(main_wd)
+samples <- ClusterDF %>% filter(cluster %in% c(2,3,10)) %>% select(TCGA_code)
+
+#samples <- ClusterDF$TCGA_code
+samples <- as.character(samples$TCGA_code)
+samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+
+
+
+genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+genes <- genes %>% filter(System == "AID/APO")
+genes <- as.character(genes$Gen)
+
+
+
+
+
+exp <- get_exp_as_matrix(samples,genes,mRNA_DF)
+exp <- t(exp)
+
+
+#For getting cluster lines
+test <- ClusterDF 
+test$TCGA_code <-  gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",ClusterDF$TCGA_code)
+test <- test[which(test$TCGA_code %in% colnames(exp)) ,]
+hline_pos <- c()
+for (cluster1 in unique(test$cluster)){
   
-  setwd(main_wd)
-  file_list <- list.files(pattern="_normalized__data.data.txt",recursive = TRUE)
   
-  read_mRNASeq <- function(files){
-    
-    
-    
-    Table <- fread(files,header=TRUE,stringsAsFactors = FALSE)
-    #Filter only for genes involved in DNA-repair
-    Table$`Hybridization REF` <- gsub("\\|.*$","",Table$`Hybridization REF`)
-    #Table <- Table %>% filter(Table$`Hybridization REF` %in% genes)
-    
-    print("done with")
-    return(Table)
-    
-    
-  }
+  pos <- tail(which(test$cluster == cluster1),n=1)
+  pos <- pos + 0.5
   
-  #file_list <- file_list[1:3]
-  
-  dataset <- do.call("cbind",lapply(file_list ,read_mRNASeq))
-  dataset <- dataset[, !duplicated(colnames(dataset))]
-  
-  setwd(main_wd)
-  write.table(dataset,"PANCAN_mRNA_expression.txt")
-  save(dataset,file="PANCAN_mRNA_expression.rda")
+  hline_pos <- c(hline_pos,pos)
   
   
 }
+  hline_pos <-head(hline_pos,-1)
+
+  
+#In order to not get grey values
+exp[exp >2] <- 2
+  
+
+
+library(ggplot2)
+library(reshape2)
+
+exp_melt <- melt(exp)
+
+ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title="All at the same time")+
+  #scale_fill_gradient(low="green", mid="lightblue", high="red",limits
+  scale_fill_gradientn(colours=c("red","lightblue","green"), limits=c(0,2))+
+  geom_hline(yintercept=hline_pos)+
+  
+  theme(
+    axis.text.x=element_text(colour="black",angle=90, hjust=1,vjust = 0.5,size=10),
+    axis.text.y=element_text(vjust = 0.5,size=6)
+  )
+
+library(scales)
+
+
+ggplot(exp_melt, aes(Var1, Var2)) + # x and y axes => Var1 and Var2
+  geom_tile(aes(fill = value)) + # background colours are mapped according to the value column
+  #
+  scale_fill_gradient2(low = muted("darkred"), 
+                       mid = "white", 
+                       high = muted("midnightblue"), 
+                       midpoint = 1,
+                       limits = c(0,2)) + # determine the colour
+  theme(panel.grid.major.x=element_blank(), #no gridlines
+        panel.grid.minor.x=element_blank(), 
+        panel.grid.major.y=element_blank(), 
+        panel.grid.minor.y=element_blank(),
+        panel.background=element_rect(fill="white"), # background=white
+        axis.text.x = element_text(angle=90, hjust = 1,vjust=1,size = 12,face = "bold"),
+        plot.title = element_text(size=20,face="bold"),
+        axis.text.y = element_text(size = 5,face = "bold")) + 
+  ggtitle("TEST") + 
+  theme(legend.title=element_text(face="bold", size=14)) + 
+  scale_x_discrete(name="") +
+  scale_y_discrete(name="") +
+  labs(fill="EXP/AVG EXP")
 
 
 
-get_cancer_abb <- function(TCGA_code){
-  
-  setwd(main_wd)
-  TSS2Study <- read.table("TSS2Studyabb.txt",header=TRUE)
-  
-  TSS_code <- gsub("TCGA-","",gsub(""))
-  
-  
-  
-  
-}
+
 
 
 
