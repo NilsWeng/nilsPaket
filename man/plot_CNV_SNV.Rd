@@ -4,7 +4,7 @@
 \alias{plot_CNV_SNV}
 \title{plot_CNV_SNV}
 \usage{
-plot_CNV_SNV(samples, genes, title1)
+plot_CNV_SNV(samples, genes, title1, plot_id, cluster_names = FALSE)
 }
 \arguments{
 \item{samples}{List of sample-id}
@@ -12,10 +12,14 @@ plot_CNV_SNV(samples, genes, title1)
 \item{genes}{List of Hugo- gene id:s}
 
 \item{title1}{Plot title}
+
+\item{plot_id}{FALSE <- Use TCGA code for plotting, TRUE <- use number}
+
+\item{cluster_names}{Plot cluster id on left side? False by default}
 }
 \description{
 Function that given a list of genes and samples plot the CNV/SNV correlation heatmap
 }
 \examples{
-plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title")
+plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title",cluster_names=FALSE)
 }

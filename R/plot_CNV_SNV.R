@@ -3,21 +3,28 @@
 #' Function that given a list of genes and samples plot the CNV/SNV correlation heatmap 
 #' @param samples List of sample-id 
 #' @param genes List of Hugo- gene id:s
-#'@param title1 Plot title
+#' @param title1 Plot title
+#' @param plot_id FALSE <- Use TCGA code for plotting, TRUE <- use number
+#' @param cluster_names Plot cluster id on left side? False by default
 #' @export
 #' @examples
-#' plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title")
+#' plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title",cluster_names=FALSE)
 
 #' @import ggplot2
 #' @import dplyr
+#' @import grid
 #' @importFrom plyr join
 #' @importFrom reshape2 melt
+#' @importFrom zoo rollmean
 
 
 
 
-
-plot_CNV_SNV <- function(samples,genes,title1){
+plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
+  
+  
+  
+  
   
   #Read GISTIC-files containing copynumber calls
   
@@ -60,8 +67,8 @@ plot_CNV_SNV <- function(samples,genes,title1){
   GISTIC <- GISTIC %>% select("Gene Symbol","Locus ID","Cytoband",common_samples)
 
   
-  MC3 <- MC3[order(MC3$Hugo_Symbol) ,]
-  GISTIC <- GISTIC[order(GISTIC$`Gene Symbol`) ,]
+  #MC3 <- MC3[order(MC3$Hugo_Symbol) ,]
+  #GISTIC <- GISTIC[order(GISTIC$`Gene Symbol`) ,]
   
   #Order after order in input vector of samples
   common_samples <- common_samples[order(match(common_samples,samples))]
@@ -70,7 +77,7 @@ plot_CNV_SNV <- function(samples,genes,title1){
   
   
   #Create a matrix of SNVs and CNVs
-  common_genes <- common_genes[order(common_genes)]
+  common_genes <- common_genes[order(match(common_genes,genes))]
   common_genes_DF <- data.frame("Hugo_Symbol"=common_genes)
   
   
@@ -82,6 +89,13 @@ plot_CNV_SNV <- function(samples,genes,title1){
   
   cnv.m <- matrix_frame
   snv.m <- matrix_frame
+  
+
+  
+  #Order after gene order (important for getting the right genes)
+  MC3 <- MC3[order(match(MC3$Hugo_Symbol,common_genes))]
+  GISTIC <- GISTIC[order(match(GISTIC$`Gene Symbol`,common_genes)) ,]
+  
   
   
   
@@ -99,7 +113,7 @@ plot_CNV_SNV <- function(samples,genes,title1){
     dup <- fill_vector_SNV[dup ,1]
     fill_vector_SNV[fill_vector_SNV$Hugo_Symbol %in% dup,2] <- "Several"
     fill_vector_SNV <- unique(fill_vector_SNV)
-    fill_vector_SNV <- join(common_genes_DF,fill_vector_SNV,by="Hugo_Symbol")
+    fill_vector_SNV <- plyr::join(common_genes_DF,fill_vector_SNV,by="Hugo_Symbol")
     
     
     
@@ -141,6 +155,21 @@ plot_CNV_SNV <- function(samples,genes,title1){
   
   #Prepare data for plotting
   
+  if (plot_id ==TRUE){
+    
+    test <- ClusterDF %>% filter(gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",TCGA_code) %in% common_samples)
+    test <- as.vector(test$sample)
+    test <- as.character(test)
+    test <- paste(rep("ID: ",length(test)),test,sep="")
+    row.names(snv.m) <- test
+    row.names(cnv.m) <- test
+  }            
+    
+ 
+  
+  
+  
+  
   #Create dataframe in format for GGplot
   GGdata <- melt(cnv.m)
   GGdata1 <- melt(snv.m)
@@ -163,6 +192,27 @@ plot_CNV_SNV <- function(samples,genes,title1){
   cnv_col_DF <- cnv_col_DF %>% filter(type %in% types_in_samples) %>% select(colour)
   cnv_col <- as.vector(cnv_col_DF$colour)
   
+  
+  #For getting vertical lines marking clusters
+  test <- ClusterDF %>% filter(gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",TCGA_code) %in% common_samples)
+  
+  hline_pos <- c()
+  for (cluster in unique(test$cluster)){
+    
+    pos <- tail(which(test$cluster == cluster),n=1)
+    pos <- pos + 0.5
+    
+    hline_pos <- c(hline_pos,pos)
+    
+  }
+  
+  
+  
+  
+  
+  
+  
+  
   P <- ggplot(GGdata,aes(x=gene,y=sample,fill=cnvs))+
     geom_tile()+
     #redrawing tiles to remove cross lines from legend
@@ -180,6 +230,7 @@ plot_CNV_SNV <- function(samples,genes,title1){
     geom_point(data=subset(GGdata,!snvs=="NA"), aes(shape=snvs),size=1)+
     scale_shape_manual(values=snv_shapes)+
     #Add vertical lines where clusters are
+    geom_hline(yintercept=hline_pos)+
     theme(
       #remove legend title
       legend.title=element_blank(),
@@ -197,10 +248,39 @@ plot_CNV_SNV <- function(samples,genes,title1){
       axis.ticks=element_line(size=0.4),
       #change title font, size, colour and justification
       plot.title=element_text(colour=textcol,hjust=0,size=14,face="bold"),
+      plot.margin=unit(c(0.5,0.5,0.5,3),"cm"),
       panel.border = element_rect(fill = NA))
   
   
   print(P)
+  
+  if (cluster_names==TRUE){
+    
+    plot.margin=unit(c(0.5,0.5,0.5,3),"cm")
+  }
+  
+  if (cluster_names==TRUE){
+    
+    library(grid)
+    library(zoo)
+    top <- 0.96
+    bot <- 0.09
+    
+    units <- (top-bot)/length(common_samples)
+    hline_pos1 <- c(0,hline_pos)
+    hline_pos1 <- rollmean(hline_pos1,k=2)
+    hline_pos1 <- units * hline_pos1
+    hline_pos1 <- hline_pos1 + 0.08
+    
+    my_text <- paste(rep("Cluster",14),c(1:14),sep=" ")
+    
+    grid.text(my_text,x=0.05, y=hline_pos1[1:14],gp=gpar(col="firebrick", fontsize=10, fontface="bold"))
+    
+    
+  }
+  
+  
+  
   
   
 }

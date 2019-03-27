@@ -10,6 +10,8 @@
 #' @export
 #' @return DF with cluster identity for each sample
 #' @import ggplot2
+#' @import grid
+#' @import zoo
 #' @importFrom reshape2 melt
 #'
 #' @examples plot_cluster_in_cosine(cluster,cos_sim_matrix,8)
@@ -48,6 +50,10 @@ plot_cluster_in_cosine <- function(cluster,cos_sim_matrix,N){
   # assign variable names
   colnames(cos_sim_matrix.m) = c("Sample", "Signature", "Cosine.sim")
   
+  
+
+  
+  
   # change factor levels to the correct order for plotting
   cos_sim_matrix.m$Signature = factor(cos_sim_matrix.m$Signature, levels = cosmic_order)
   cos_sim_matrix.m$Sample = factor(cos_sim_matrix.m$Sample, levels = sample_order)
@@ -56,26 +62,38 @@ plot_cluster_in_cosine <- function(cluster,cos_sim_matrix,N){
     geom_tile(color = "white") +
     scale_fill_distiller(palette = "YlGnBu", direction = 1, name = "Cosine \nsimilarity", limits = c(0,1)) +
     geom_hline(yintercept=hline_pos)+
+    coord_cartesian(clip = 'off') +
     theme_bw() + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5),
-          axis.text.y = element_text(size=5)) +
+          axis.text.y = element_text(size=5),
+          plot.margin=unit(c(0.5,0.5,0.5,3),"cm")) +
     labs(x=NULL, y=NULL)
-  
-  
-  
-  
   
   print(heatmap)
   
-  #grid.locator(unit="native") 
-  
- #bottom_y <- 284
-  #grid.brackets(-20, 10,   -20, 100, lwd=2, col="red")
-  #grid.brackets(600, bottom_y,  440, bottom_y, lwd=2, col="red")
   
   
   
   
+  
+  
+  library(grid)
+  
+  top <- 0.98
+  bot <- 0.09
+  
+  units <- (top-bot)/length(sample_order)
+  hline_pos <- c(0,hline_pos)
+  hline_pos <- rollmean(hline_pos,k=2)
+  hline_pos <- units * hline_pos
+  hline_pos <- hline_pos + 0.08
+  
+  my_text <- paste(rep("Cluster",N),c(1:N),sep=" ")
+  
+  grid.text(my_text,x=0.05, y=hline_pos[1:14],gp=gpar(col="firebrick", fontsize=10, fontface="bold"))
+  
+  
+
   return(cluster_groups)
   
 }

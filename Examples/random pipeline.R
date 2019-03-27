@@ -36,7 +36,7 @@ if (!dir.exists(file.path(paste(main_wd,"/VCF_files",sep="")))){
   MC3_to_VCF()
   
 }  
-  
+
 
 
 #Read MC3 file
@@ -49,20 +49,20 @@ if(!file.exists("MC3.rda")){
 load("MC3.rda")
 
 #Random samples
-#random_samples <- unique(MC3$Tumor_Sample_Barcode)
-#random_samples <- sample(random_samples,200)
+random_samples <- unique(MC3$Tumor_Sample_Barcode)
+random_samples <- sample(random_samples,200)
 
-#high_mutation_samples <- random_samples
+high_mutation_samples <- random_samples
 
 
 
 
 #Extract highly mutated samples
 #Stopped working all of a sudden , cant find Tumor_Sample_Barcode
-S <- 3
+S <- "random3"
 type <- "SD" #SD or absolute
 
-high_mutation_samples <- get_high_mutations(MC3,type,S)
+#high_mutation_samples <- get_high_mutations(MC3,type,S)
 
 
 #Subselction of MC3 
@@ -154,6 +154,18 @@ colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
 #Create a cosine similarity matrix
 cos_sim_samples_cosmic <- cos_sim_matrix(mutational_matrix, cosmic_signatures)
 
+
+
+
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Random_new")
+#pdf(paste(S,".pdf"))
+setwd(main_wd)
+
+
+
+
+
+setwd(main_wd)
 #Cluster cosmic signatures
 hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 #store signatures in new order
@@ -164,7 +176,7 @@ print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, clus
 
 
 #Cluster samples based on cosine similarity
-N <- 14
+N <- 5
 sample_cluster <- hclust(dist(cos_sim_samples_cosmic,method="euclidean"),method="complete")
 plot_cluster(sample_cluster,N,2.2)
 
@@ -173,7 +185,7 @@ plot_cluster(sample_cluster,N,2.2)
 
 
 #plot cluster in heatmap
-ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,14)
+ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,N)
 ClusterDF$sample <- as.character(ClusterDF$sample)
 sampleDF$sample <- as.character(sampleDF$sample)
 #ClusterDF$sample <- as.numeric(ClusterDF$sample) 
@@ -205,6 +217,8 @@ rm(TSS2Study,sampleDF,MC3)
 #Find signatures in cluster
 #Make sure that rownames of cos_sim matches ClusterDF$samples
 get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
+library(dplyr)
+piechart_cancer_cluster(ClusterDF)
 
 rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
 
@@ -213,20 +227,15 @@ rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","mai
 
 setwd(main_wd)
 
-samples <- ClusterDF %>% filter(cluster == 3) %>% select(TCGA_code)
-samples <- as.character(samples$TCGA_code)
-samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
 
-genes <- as.character(DNA_repair$hgnc_symbol)
 
-#################################################################################
-#Test MMR cluster 6,7,9
-#samples <- ClusterDF %>% filter(cluster %in% c(1,4,8)) %>% select(TCGA_code)
 samples <- ClusterDF %>% select(TCGA_code)
-#samples <- unique(samples)
+samples <- unique(samples)
 samples <- as.character(samples$TCGA_code)
 samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+
+
 
 
 genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
@@ -234,39 +243,13 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
-plot_CNV_SNV(samples,genes,"ALL",plot_id=TRUE,cluster_names = TRUE)
+plot_CNV_SNV(samples,genes,S,plot_id = TRUE)
 
 
 
-#Just take random genes 
-#samples <- as.character(sample(MC3$Tumor_Sample_Barcode,40))
-#samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
-#genes <- as.character(unique(MC3$Hugo_Symbol[1:40]))
-#plot_CNV_SNV(samples,genes,"Random")
+
 
 ####################################################
-
-
-#Plot and save all cluster
-setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/CNV_SNV")
-pdf(file="one_cluster_a_time.pdf",width=16, height=10)
-
-for (Cluster in unique(ClusterDF$cluster)){
-  
-  setwd(main_wd)
-  
-  samples <- ClusterDF %>% filter(cluster == Cluster) %>% select(TCGA_code)
-  samples <- as.character(samples$TCGA_code)
-  samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
-  
-  
-  genes <- as.character(DNA_repair$hgnc_symbol)
-  print(plot_CNV_SNV(samples,genes,paste("Cluster",Cluster,sep=" ")))
-  
-  
-}
-
-dev.off()
 
 
 
@@ -274,29 +257,14 @@ dev.off()
 
 
 # mRNA Exp ----------------------------------------------------------------
-genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
-genes <- as.character(genes$Gen)
-genes <- unique(genes) #unrefined gene list
+
 mRNA_DF <- mRNA_exp(genes)
 
 
-
-#Try AID/APOBEC 
 setwd(main_wd)
-samples <- ClusterDF %>% filter(cluster %in% c(1,4,8)) %>% select(TCGA_code)
+#samples <- ClusterDF %>% filter(cluster %in% c(1,4,8)) %>% select(TCGA_code)
 
 #Select samples
-#samples <- ClusterDF$TCGA_code
-samples <- as.character(samples$TCGA_code)
-samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
-
-
-#Select genes
-genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
-genes <- genes %>% filter(System == "AID/APO")
-genes <- as.character(genes$Gen)
-
-
 
 
 
@@ -311,7 +279,7 @@ test <- test[which(test$TCGA_code %in% colnames(exp)) ,]
 hline_pos <- c()
 for (cluster1 in unique(test$cluster)){
   
-  
+ 
   pos <- tail(which(test$cluster == cluster1),n=1)
   pos <- pos + 0.5
   
@@ -319,12 +287,18 @@ for (cluster1 in unique(test$cluster)){
   
   
 }
-  hline_pos <-head(hline_pos,-1)
+hline_pos <-head(hline_pos,-1)
 
-  
+
 #In order to not get grey values
 exp[exp >2] <- 2
-  
+
+
+#Optional: Change TCGA-code to id
+test <- test[order(match(test$TCGA_code,colnames(exp))) ,]
+
+colnames(exp) <- paste(rep("_",length(test$sample)),test$sample,sep="")
+
 
 
 library(ggplot2)
@@ -332,50 +306,20 @@ library(reshape2)
 
 exp_melt <- melt(exp)
 
-ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title="Random")+
+ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title=S)+
   #scale_fill_gradient(low="green", mid="lightblue", high="red",limits
   scale_fill_gradientn(colours=c("red","lightblue","green"), limits=c(0,2))+
   geom_hline(yintercept=hline_pos)+
   
   theme(
-    axis.text.x=element_text(colour="black",angle=90, hjust=1,vjust = 0.5,size=10),
-    axis.text.y=element_text(vjust = 0.5,size=6)
+    axis.text.x=element_text(colour="black",angle=90, hjust=1,vjust = 0.5,size=6),
+    axis.text.y=element_text(vjust = 0.5,size=5)
   )
 
 
+#dev.off()
 
 
-
-
-
-
-
-
-
-library(scales)
-
-
-ggplot(exp_melt, aes(Var1, Var2)) + # x and y axes => Var1 and Var2
-  geom_tile(aes(fill = value)) + # background colours are mapped according to the value column
-  #
-  scale_fill_gradient2(low = muted("darkred"), 
-                       mid = "white", 
-                       high = muted("midnightblue"), 
-                       midpoint = 1,
-                       limits = c(0,2)) + # determine the colour
-  theme(panel.grid.major.x=element_blank(), #no gridlines
-        panel.grid.minor.x=element_blank(), 
-        panel.grid.major.y=element_blank(), 
-        panel.grid.minor.y=element_blank(),
-        panel.background=element_rect(fill="white"), # background=white
-        axis.text.x = element_text(angle=90, hjust = 1,vjust=1,size = 12,face = "bold"),
-        plot.title = element_text(size=20,face="bold"),
-        axis.text.y = element_text(size = 5,face = "bold")) + 
-  ggtitle("TEST") + 
-  theme(legend.title=element_text(face="bold", size=14)) + 
-  scale_x_discrete(name="") +
-  scale_y_discrete(name="") +
-  labs(fill="EXP/AVG EXP")
 
 
 
