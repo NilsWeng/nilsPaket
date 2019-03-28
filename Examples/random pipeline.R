@@ -59,7 +59,7 @@ high_mutation_samples <- random_samples
 
 #Extract highly mutated samples
 #Stopped working all of a sudden , cant find Tumor_Sample_Barcode
-S <- "random3"
+S <- "random1"
 type <- "SD" #SD or absolute
 
 #high_mutation_samples <- get_high_mutations(MC3,type,S)
@@ -158,8 +158,7 @@ cos_sim_samples_cosmic <- cos_sim_matrix(mutational_matrix, cosmic_signatures)
 
 
 setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Random_new")
-#pdf(paste(S,".pdf"))
-setwd(main_wd)
+pdf(paste(S,".pdf"),height=8.27,width =11.69)
 
 
 
@@ -171,18 +170,28 @@ hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 #store signatures in new order
 cosmic_order = colnames(cosmic_signatures)[hclust_cosmic$order]
 #plot cosine_heatmap
-print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, cluster_rows = TRUE))
+plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, cluster_rows = TRUE)
 
 
 
 #Cluster samples based on cosine similarity
-N <- 5
+
+#N <- 5
 sample_cluster <- hclust(dist(cos_sim_samples_cosmic,method="euclidean"),method="complete")
+
+N <- length(unique(cutreeDynamicTree(sample_cluster,maxTreeHeight = 16,deepSplit = TRUE)))
+
+if (N < 5 ){
+  
+  N <- 5
+}
+
+
 plot_cluster(sample_cluster,N,2.2)
 
 
 
-
+setwd(main_wd)
 
 #plot cluster in heatmap
 ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,N)
@@ -206,13 +215,6 @@ ClusterDF <- left_join(ClusterDF,mutDF,by="TCGA_code")
 rm(TSS2Study,sampleDF,MC3)
 
 
-#Manual edit
-#Split cluster 3 into 2 
-#remove <- "TCGA-13-0889-01A-01W-0420-08"
-#new <- c("TCGA-YC-A89H-01A-11D-A364-08","TCGA-DK-A1AC-01A-11D-A13W-08","TCGA-BT-A2LB-01A-11D-A18F-08")
-#ClusterDF[ClusterDF$sample %in% new,2] <- "3a"
-#ClusterDF <- ClusterDF[!ClusterDF$TCGA_code %in% remove ,]
-
 
 #Find signatures in cluster
 #Make sure that rownames of cos_sim matches ClusterDF$samples
@@ -220,7 +222,10 @@ get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
 library(dplyr)
 piechart_cancer_cluster(ClusterDF)
 
-rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
+
+
+
+#rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
 
 # CNV_SNV plot ------------------------------------------------------------
 
@@ -243,7 +248,7 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
-plot_CNV_SNV(samples,genes,S,plot_id = TRUE)
+print(plot_CNV_SNV(samples,genes,S,plot_id = TRUE,cluster_names = TRUE))
 
 
 
@@ -306,7 +311,7 @@ library(reshape2)
 
 exp_melt <- melt(exp)
 
-ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title=S)+
+p <- ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title=S)+
   #scale_fill_gradient(low="green", mid="lightblue", high="red",limits
   scale_fill_gradientn(colours=c("red","lightblue","green"), limits=c(0,2))+
   geom_hline(yintercept=hline_pos)+
@@ -316,9 +321,10 @@ ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x=
     axis.text.y=element_text(vjust = 0.5,size=5)
   )
 
+print(p)
 
-#dev.off()
-
+dev.off()
+dev.off()
 
 
 

@@ -4,14 +4,16 @@
 \alias{piechart_cancer_cluster}
 \title{piechart_cancer_cluster}
 \usage{
-piechart_cancer_cluster(ClusterDF)
+piechart_cancer_cluster(ClusterDF, mfrows = c(3, 2))
 }
 \arguments{
 \item{ClusterDF}{blahblah}
+
+\item{mfrows}{Subplot layout(depends on cluster)}
 }
 \description{
 Plot piechart over cluster cancer dist
 }
 \examples{
-piechart_cancer_cluster(DF)
+piechart_cancer_cluster(DF,c(2,3))
 }

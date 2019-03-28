@@ -158,6 +158,12 @@ cos_sim_samples_cosmic <- cos_sim_matrix(mutational_matrix, cosmic_signatures)
 hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 #store signatures in new order
 cosmic_order = colnames(cosmic_signatures)[hclust_cosmic$order]
+
+#Plot everything in one pdf.file
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures")
+pdf(file=paste(S,"_high_mut.pdf"),height=8.27,width =11.69)
+
+
 #plot cosine_heatmap
 print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, cluster_rows = TRUE))
 
@@ -171,7 +177,7 @@ plot_cluster(sample_cluster,N,2.2)
 
 
 
-
+setwd(main_wd)
 #plot cluster in heatmap
 ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,14)
 ClusterDF$sample <- as.character(ClusterDF$sample)
@@ -206,6 +212,9 @@ rm(TSS2Study,sampleDF,MC3)
 #Make sure that rownames of cos_sim matches ClusterDF$samples
 get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
 
+piechart_cancer_cluster(ClusterDF,mfrows=c(7,2))
+
+
 rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
 
 # CNV_SNV plot ------------------------------------------------------------
@@ -213,12 +222,12 @@ rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","mai
 
 setwd(main_wd)
 
-samples <- ClusterDF %>% filter(cluster == 3) %>% select(TCGA_code)
-samples <- as.character(samples$TCGA_code)
-samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+#samples <- ClusterDF %>% filter(cluster == 3) %>% select(TCGA_code)
+#samples <- as.character(samples$TCGA_code)
+#samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
 
-genes <- as.character(DNA_repair$hgnc_symbol)
+#genes <- as.character(DNA_repair$hgnc_symbol)
 
 #################################################################################
 #Test MMR cluster 6,7,9
@@ -234,7 +243,7 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
-plot_CNV_SNV(samples,genes,"ALL",plot_id=TRUE,cluster_names = TRUE)
+plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=TRUE,cluster_names = TRUE)
 
 
 
@@ -246,55 +255,55 @@ plot_CNV_SNV(samples,genes,"ALL",plot_id=TRUE,cluster_names = TRUE)
 
 ####################################################
 
-
-#Plot and save all cluster
-setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/CNV_SNV")
-pdf(file="one_cluster_a_time.pdf",width=16, height=10)
-
-for (Cluster in unique(ClusterDF$cluster)){
-  
-  setwd(main_wd)
-  
-  samples <- ClusterDF %>% filter(cluster == Cluster) %>% select(TCGA_code)
-  samples <- as.character(samples$TCGA_code)
-  samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+if(FALSE){
+  #Plot and save all cluster
+  setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/CNV_SNV")
+  pdf(file="one_cluster_a_time.pdf",width=16, height=10)
   
   
-  genes <- as.character(DNA_repair$hgnc_symbol)
-  print(plot_CNV_SNV(samples,genes,paste("Cluster",Cluster,sep=" ")))
+  for (Cluster in unique(ClusterDF$cluster)){
+    
+    setwd(main_wd)
+    
+    samples <- ClusterDF %>% filter(cluster == Cluster) %>% select(TCGA_code)
+    samples <- as.character(samples$TCGA_code)
+    samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+    
+    
+    genes <- as.character(DNA_repair$hgnc_symbol)
+    print(plot_CNV_SNV(samples,genes,paste("Cluster",Cluster,sep=" ")))
+    
+    
+  }
+  
+  dev.off()
   
   
 }
 
-dev.off()
-
-
-
-#Function- Given a set of samples and genes get expression for these
-
 
 # mRNA Exp ----------------------------------------------------------------
-genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
-genes <- as.character(genes$Gen)
-genes <- unique(genes) #unrefined gene list
+#genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+#genes <- as.character(genes$Gen)
+#genes <- unique(genes) #unrefined gene list
 mRNA_DF <- mRNA_exp(genes)
 
 
 
 #Try AID/APOBEC 
-setwd(main_wd)
-samples <- ClusterDF %>% filter(cluster %in% c(1,4,8)) %>% select(TCGA_code)
+#setwd(main_wd)
+#samples <- ClusterDF %>% filter(cluster %in% c(1,4,8)) %>% select(TCGA_code)
 
 #Select samples
 #samples <- ClusterDF$TCGA_code
-samples <- as.character(samples$TCGA_code)
-samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
+#samples <- as.character(samples$TCGA_code)
+#samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
 
 #Select genes
-genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
-genes <- genes %>% filter(System == "AID/APO")
-genes <- as.character(genes$Gen)
+#genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+#genes <- genes %>% filter(System == "AID/APO")
+#genes <- as.character(genes$Gen)
 
 
 
@@ -332,7 +341,7 @@ library(reshape2)
 
 exp_melt <- melt(exp)
 
-ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title="Random")+
+ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x="",y="",title="High mutation samples")+
   #scale_fill_gradient(low="green", mid="lightblue", high="red",limits
   scale_fill_gradientn(colours=c("red","lightblue","green"), limits=c(0,2))+
   geom_hline(yintercept=hline_pos)+
@@ -348,38 +357,55 @@ ggplot(data = exp_melt, aes(x=Var1, y=Var2, fill=value)) + geom_tile() + labs(x=
 
 
 
+dev.off()
 
 
 
 
-library(scales)
-
-
-ggplot(exp_melt, aes(Var1, Var2)) + # x and y axes => Var1 and Var2
-  geom_tile(aes(fill = value)) + # background colours are mapped according to the value column
-  #
-  scale_fill_gradient2(low = muted("darkred"), 
-                       mid = "white", 
-                       high = muted("midnightblue"), 
-                       midpoint = 1,
-                       limits = c(0,2)) + # determine the colour
-  theme(panel.grid.major.x=element_blank(), #no gridlines
-        panel.grid.minor.x=element_blank(), 
-        panel.grid.major.y=element_blank(), 
-        panel.grid.minor.y=element_blank(),
-        panel.background=element_rect(fill="white"), # background=white
-        axis.text.x = element_text(angle=90, hjust = 1,vjust=1,size = 12,face = "bold"),
-        plot.title = element_text(size=20,face="bold"),
-        axis.text.y = element_text(size = 5,face = "bold")) + 
-  ggtitle("TEST") + 
-  theme(legend.title=element_text(face="bold", size=14)) + 
-  scale_x_discrete(name="") +
-  scale_y_discrete(name="") +
-  labs(fill="EXP/AVG EXP")
 
 
 
 
+# Find if any certain SNVS is common within cluster --------------------------------------
+
+
+#might just aswell be a seperate script
+
+
+rm(list=ls()[! ls() %in% c("ClusterDF","main_wd","genes")])
+gc()
+setwd(main_wd)
+
+#Need information about AA changes
+MC3_DF <- fread('mc3.v0.2.8.PUBLIC.maf.gz')
+
+#load("MC3.rda")
+
+#MC3_samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",MC3$Tumor_Sample_Barcode)
+
+
+for (i in 1:length(unique(ClusterDF$cluster))){
+  
+  cluster_x <- ClusterDF %>% filter(cluster == i)
+  
+  cluster_MC3 <- MC3 %>% filter(Tumor_Sample_Barcode %in% cluster_x$TCGA_code)
+  common_mutations <- cluster_MC3 %>% dplyr::count(Hugo_Symbol,Chromosome, Start_Position,End_Position)
+  common_mutations <- common_mutations[order(common_mutations$n,decreasing = TRUE),]
+  test <- head(common_mutations,20)
+  
+  
+  #Check if any of the commonly mutated genes are in the genes-list
+  test  <- intersect(test$Hugo_Symbol,genes)
+  
+  
+  print(paste("cluster",i,sep=" "))
+  print(test)
+  
+  
+  
+  
+  
+}
 
 
 
