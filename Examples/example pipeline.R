@@ -58,7 +58,9 @@ load("MC3.rda")
 
 
 #Extract highly mutated samples
-#Stopped working all of a sudden , cant find Tumor_Sample_Barcode
+#For convenince S and type is how files are named such as pictures or RDA objects
+
+
 S <- 3
 type <- "SD" #SD or absolute
 
@@ -179,7 +181,7 @@ plot_cluster(sample_cluster,N,2.2)
 
 setwd(main_wd)
 #plot cluster in heatmap
-ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,14)
+ClusterDF <- plot_cluster_in_cosine(sample_cluster,cos_sim_samples_cosmic,N)
 ClusterDF$sample <- as.character(ClusterDF$sample)
 sampleDF$sample <- as.character(sampleDF$sample)
 #ClusterDF$sample <- as.numeric(ClusterDF$sample) 
@@ -200,19 +202,12 @@ ClusterDF <- left_join(ClusterDF,mutDF,by="TCGA_code")
 rm(TSS2Study,sampleDF,MC3)
 
 
-#Manual edit
-#Split cluster 3 into 2 
-#remove <- "TCGA-13-0889-01A-01W-0420-08"
-#new <- c("TCGA-YC-A89H-01A-11D-A364-08","TCGA-DK-A1AC-01A-11D-A13W-08","TCGA-BT-A2LB-01A-11D-A18F-08")
-#ClusterDF[ClusterDF$sample %in% new,2] <- "3a"
-#ClusterDF <- ClusterDF[!ClusterDF$TCGA_code %in% remove ,]
-
 
 #Find signatures in cluster
 #Make sure that rownames of cos_sim matches ClusterDF$samples
 get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
 
-piechart_cancer_cluster(ClusterDF,mfrows=c(7,2))
+piechart_cancer_cluster(ClusterDF,mfrows=c(round(N/2),2))
 
 
 rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
@@ -367,45 +362,79 @@ dev.off()
 
 
 # Find if any certain SNVS is common within cluster --------------------------------------
-
-
+library(data.table)
+library(dplyr)
 #might just aswell be a seperate script
 
 
 rm(list=ls()[! ls() %in% c("ClusterDF","main_wd","genes")])
 gc()
+
+main_wd <- "C:/Users/Nils_/OneDrive/Skrivbord/Main/Data"
 setwd(main_wd)
 
+library(data.table)
+
+
+#ClusterDF
+#ClusterDF<- read.table("ClusterDF.txt",header=TRUE)
+
+
 #Need information about AA changes
-MC3_DF <- fread('mc3.v0.2.8.PUBLIC.maf.gz')
+#MC3_DF <- fread('mc3.v0.2.8.PUBLIC.maf.gz')
 
-#load("MC3.rda")
+#MC3_DF <- MC3_DF %>% select("Hugo_Symbol","Chromosome","Start_Position"
+                           # ,"End_Position","Tumor_Sample_Barcode","Variant_Classification"
+                           # ,"HGVSp_Short","Strand")
 
-#MC3_samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",MC3$Tumor_Sample_Barcode)
 
+#MC3 <- MC3_DF
+load("MC3_ext.rda")
+
+
+
+genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
+#genes <- genes %>% filter(System == "BER")
+genes <- as.character(genes$Gen)
+
+table_to_print <- tibble()
 
 for (i in 1:length(unique(ClusterDF$cluster))){
+  
+
   
   cluster_x <- ClusterDF %>% filter(cluster == i)
   
   cluster_MC3 <- MC3 %>% filter(Tumor_Sample_Barcode %in% cluster_x$TCGA_code)
-  common_mutations <- cluster_MC3 %>% dplyr::count(Hugo_Symbol,Chromosome, Start_Position,End_Position)
+  common_mutations <- cluster_MC3 %>% dplyr::count(Hugo_Symbol,Chromosome, 
+                                                   Start_Position,End_Position,
+                                                   Variant_Classification,HGVSp_Short)
+  
   common_mutations <- common_mutations[order(common_mutations$n,decreasing = TRUE),]
-  test <- head(common_mutations,20)
+  test <- head(common_mutations,30)
+  test <- test %>% select(n,Hugo_Symbol,HGVSp_Short,Variant_Classification)
   
   
   #Check if any of the commonly mutated genes are in the genes-list
-  test  <- intersect(test$Hugo_Symbol,genes)
+  high_mut_gene  <- intersect(test$Hugo_Symbol,genes)
   
+
+  test <- test %>% filter(Hugo_Symbol %in% high_mut_gene)
   
   print(paste("cluster",i,sep=" "))
-  print(test)
+  print(high_mut_gene)
   
+  test$cluster <- c(rep(i,nrow(test)))
+  table_to_print <- rbind(table_to_print,test)
   
+  #library(formattable)
+  #formattable(test,align="l")
   
-  
-  
+
 }
 
 
+library(kableExtra)
+print(formattable(table_to_print,align="l"))
+#print(kable_styling(kable(table_to_print)))
 

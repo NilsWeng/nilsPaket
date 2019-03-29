@@ -7,6 +7,7 @@ library(dplyr)
 library(MutationalPatterns)
 library(BSgenome)
 library("BSgenome.Hsapiens.UCSC.hg19", character.only = TRUE)
+library(dynamicTreeCut)
 
 
 
@@ -59,7 +60,7 @@ high_mutation_samples <- random_samples
 
 #Extract highly mutated samples
 #Stopped working all of a sudden , cant find Tumor_Sample_Barcode
-S <- "random1"
+S <- "random2"
 type <- "SD" #SD or absolute
 
 #high_mutation_samples <- get_high_mutations(MC3,type,S)
@@ -327,6 +328,7 @@ dev.off()
 dev.off()
 
 
+commonly_mut_genes(ClusterDF)
 
 
 
