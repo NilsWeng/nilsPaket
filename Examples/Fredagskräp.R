@@ -9,7 +9,7 @@ library(BSgenome)
 library("BSgenome.Hsapiens.UCSC.hg19", character.only = TRUE)
 library(ggplot2)
 library(reshape2)
-library(dynamicTreeCut)
+
 
 
 #Set wd to folder containing all data
@@ -26,7 +26,7 @@ cosmic_signatures <- as.matrix(read.table("cosmic_signatures_extended.txt",heade
 #Get all mutational matrix
 setwd("C:/Users/Nils_/OneDrive/Skrivbord/Data/MC3/generated_data")
 mut_files <- list.files(pattern = "mut_mat",recursive = TRUE)
-mut_files <- mut_files[1]
+mut_files <- mut_files[3]
 
 #for (file_name in mut_files){
   file_name <- mut_files
@@ -42,9 +42,6 @@ mut_files <- mut_files[1]
   #Saved in wierd format before need to restore TCGA-name
   setwd(main_wd)
   load("MC3.rda")
-  
-  
-  
   sample_names <- unique(MC3$Tumor_Sample_Barcode)
   mat_names <- colnames(mutational_matrix)
   colnames(mutational_matrix) <- grep(paste(mat_names, collapse="|"), sample_names,value = TRUE)
@@ -59,43 +56,32 @@ mut_files <- mut_files[1]
   #Fit mut_matrix to cosmic
   fit_to_cosmic <- fit_to_signatures(mutational_matrix,cosmic_signatures)
   
-  #Apply some kind of filter to only get main contributors
-  select <- which(rowSums(fit_to_cosmic$contribution) > 600)
-  
+
   #Try cluster data before plotting
   sample_order <- hclust(dist(t(fit_to_cosmic$contribution)),method="complete")$order
   sample_order <- colnames(fit_to_cosmic$contribution)[sample_order]
   
-  a <- as.data.frame(fit_to_cosmic$contribution)
-  a <- as.matrix(a)
+  #
+  fit_to_cosmic$contribution <- fit_to_cosmic$contribution[, match(sample_order,colnames(fit_to_cosmic$contribution))]
+  fit_to_cosmic$reconstructed <- fit_to_cosmic$reconstructed[, match(sample_order,colnames(fit_to_cosmic$reconstructed))]
+  mutational_matrix <- mutational_matrix[, match(sample_order,colnames(mutational_matrix))]
   
   
-  library(data.table)
-  test <- setcolorder(a,sample_order)
   
   
   #Apply some kind of filter to only get main contributors
-  select <- which(rowSums(fit_to_cosmic$contribution) > 600)
+  select <- which(rowSums(fit_to_cosmic$contribution)/sum(rowSums(fit_to_cosmic$contribution)) > 0.02)
+  #Subselection of only high contributors , cluster on this.
+  #test <- fit_to_cosmic$contribution
+  #test <- test[rownames(test) %in% sample_order ,]
   
+  #Plot contribution
+  plot_contribution(fit_to_cosmic$contribution[select ,],cosmic_signatures[,select],coord_flip= FALSE,mode="absolute")
   
-  library(data.table)
+
  
-  
-  
-  plot_contribution(fit_to_cosmic$contribution[select ,],cosmic_signatures[,select],
-                    coord_flip= TRUE,mode="relative")
-  
-  plot_contribution(a[select ,],cosmic_signatures[,select],
-                    coord_flip= TRUE,mode="relative")
-  
-  
- 
-  
-  
-   
-  
-  
-  
+
+
   contribution <- fit_to_cosmic$contribution[select ,]
   Signature <- cosmic_signatures[,select]
   
@@ -116,12 +102,37 @@ mut_files <- mut_files[1]
     theme(panel.grid.minor.x=element_blank(),
           panel.grid.major.x=element_blank()) +
     theme(panel.grid.minor.y=element_blank(),
-          panel.grid.major.y=element_blank())
-  }
+          panel.grid.major.y=element_blank(),
+          axis.text.y=element_text(vjust = 0.5,size=5))
+  
 
 plot = plot + scale_fill_discrete(name="Signature")
 plot = plot + coord_flip() + xlim(rev(levels(factor(m_contribution$Sample))))
+plot  
+
   
+  
+
+  
+#How well is the original signatures reconstructed
+cos_sim_reco <- cos_sim_matrix(mutational_matrix, fit_to_cosmic$reconstructed)
+cos_sim_reco <- as.data.frame(diag(cos_sim_reco))
+colnames(cos_sim_reco) = "cos_sim"
+cos_sim_reco$sample = row.names(cos_sim_reco)
+
+ggplot(cos_sim_reco, aes(y=cos_sim, x=sample)) +
+   geom_bar(stat="identity", fill = "skyblue4") +
+   coord_cartesian(ylim=c(0.6, 1)) +
+   coord_flip(ylim=c(0.6,1)) +
+   ylab("Cosine similarity\n original VS reconstructed") +
+   xlab("") +
+   # Reverse order of the samples such that first is up
+   # xlim(rev(levels(factor(cos_sim_ori_rec$sample)))) +
+   theme_bw() +
+   theme(panel.grid.minor.y=element_blank(), panel.grid.major.y=element_blank(),
+         axis.text.y=element_text(vjust = 0.5,size=5))+ 
+   # Add cut.off line
+   geom_hline(aes(yintercept=.95))
 
   
   
@@ -133,13 +144,18 @@ plot = plot + coord_flip() + xlim(rev(levels(factor(m_contribution$Sample))))
   
   
   
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
   
   
   

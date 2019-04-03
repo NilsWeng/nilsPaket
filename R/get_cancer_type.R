@@ -18,6 +18,9 @@ get_cancer_type <- function(TCGA_code){
   current_wd <- getwd()
   setwd(main_wd)
   TSS2Study <- read.table("TSS2Studyabb.txt",header=TRUE,stringsAsFactors = FALSE)
+  #Handle NA -> USCS , read as na value
+  TSS2Study[which(is.na(TSS2Study$TSS.Code)),1] <- "NA"
+  
   
   TSS_code <- gsub("TCGA-","",gsub("-[A-Z0-9]*-[A-Z0-9]*$","",TCGA_code))
   TSS_code <- left_join(data.frame("TSS.Code"=TSS_code),TSS2Study,by="TSS.Code")

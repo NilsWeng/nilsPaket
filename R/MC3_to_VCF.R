@@ -55,12 +55,32 @@ MC3_to_VCF <- function(){
     setwd(directory_name)
     
     
+    
+    
+    #Save cohort level vcf file
+    cohort_vcf <-  matrix(".", nrow=nrow(cancerType), ncol = 10);
+    #sample_id <- unique(Sample$Tumor_Sample_Barcode);
+    columns=c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT","?" )
+    colnames(cohort_vcf) <- columns
+    
+    cohort_vcf[,1]=as.character(cancerType$Chromosome)
+    cohort_vcf[,2]=as.character(cancerType$Start_Position)
+    cohort_vcf[,4]=as.character(cancerType$Reference_Allele)
+    cohort_vcf[,5]=as.character(cancerType$Tumor_Seq_Allele2)
+    cohort_vcf[,9]="GT"
+    cohort_vcf[,10]="1/0"
+    
+    cohort_vcf[,3]=as.character(cancerType$Tumor_Sample_Barcode)
+    
+    write.table(cohort_vcf, file="Cohort.vcf", row.names=FALSE, sep="\t", quote=FALSE)
+    
+    
+    
     #Split cancer type into individual samples
     MC3_DF_Sample <- split (cancerType, f= cancerType$Tumor_Sample_Barcode,drop = TRUE) # not sure if this works
     
     
-    
-    
+ 
     
     
     
