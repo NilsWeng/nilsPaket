@@ -1,14 +1,13 @@
-#' plot_CNV_SNV
+#' plot_mRNA_SNV
 #'
 #' Function that given a list of genes and samples plot the CNV/SNV correlation heatmap 
 #' @param samples List of sample-id 
 #' @param genes List of Hugo- gene id:s
-#' @param title1 Plot title
-#' @param plot_id FALSE <- Use TCGA code for plotting, TRUE <- use number
 #' @param cluster_names Plot cluster id on left side? False by default
+#' @param mRNA_DF Data frame containing mRNA data( from mRNA_exp(genes))
 #' @export
 #' @examples
-#' plot_CNV_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title",cluster_names=FALSE)
+#' plot_mRNA_SNV(c(XX,YY),c("ACC","BRCA1"),"Good title",cluster_names=FALSE,mRNA_DF)
 
 #' @import ggplot2
 #' @import dplyr
@@ -16,87 +15,130 @@
 #' @importFrom plyr join
 #' @importFrom reshape2 melt
 #' @importFrom zoo rollmean
+#' @importFrom data.table setcolorder
 
 
 
 
-plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
+plot_mRNA_SNV <- function(samples,genes,cluster_names=FALSE,mRNA_DF){
   
   
-  
-  
-  
-  #Read GISTIC-files containing copynumber calls
+
   
   setwd(main_wd)
-  file_list <- list.files(pattern="all_thresholded.by_genes.txt",recursive = TRUE)
-  #file_list <- list.files(pattern="all_data_by_genes.txt",recursive = TRUE)
-  GISTIC <- read_GISTIC(file_list,genes)
   
-  #Treshold GISTIC file
-  #GISTIC1 <- GISTIC
-  
-  #Convert arm significant genes to same as significant
-  #GISTIC1[GISTIC1 >= 1 ] <- 1
-  #GISTIC1[GISTIC1 <= -1 ] <- -1
-  
-  #GISTIC1[GISTIC1 >= 1.3 ] <- 2
-  #GISTIC1[GISTIC1<1.3 & GISTIC1>-1.1] <- 0
-  #GISTIC1[0.7 < GISTIC1 & GISTIC1 < 1.7]<- 1
-  #GISTIC1[-0.7 <= GISTIC1 & GISTIC1 <= 0.7]<- 0
-  #GISTIC1[-1.3 < GISTIC1 & GISTIC1 < -0.7] <- -1
-  #GISTIC1[GISTIC1 <= -1.1] <- -2
-  #GISTIC[, 4:ncol(GISTIC)] <-  GISTIC1[, 4:ncol(GISTIC1) ]
-  
-  
-  #select on samples present in samples
-  keep <- c(samples,c("Gene Symbol","Locus ID","Cytoband"))
-  colnames(GISTIC) <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",colnames(GISTIC))
-  GISTIC <- GISTIC[, colnames(GISTIC) %in% keep]
-  
-  
+
   #Load MC3 data
   load("MC3.rda")
-  
   MC3 <- MC3 %>% select("Hugo_Symbol","Chromosome","Start_Position"
                         ,"End_Position","Tumor_Sample_Barcode","Variant_Classification")
   
   #Filter on genes
   MC3 <- MC3[MC3$Hugo_Symbol %in% genes ,]
+  
   #Modify sample-id
   MC3$Tumor_Sample_Barcode <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","", MC3$Tumor_Sample_Barcode)
-  
-  #Common genes
-  common_genes <- intersect(unique(MC3$Hugo_Symbol),GISTIC$`Gene Symbol`)
-  
-  MC3 <- MC3[MC3$Hugo_Symbol %in% common_genes ,]
-  GISTIC <- GISTIC[GISTIC$`Gene Symbol` %in% common_genes ,]
   
   #Filter on samples
   MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% samples ,]
   
   
-  #Select only genes and samples common between MC3 and GISITC
-  #Common samples
-  common_samples <- intersect(MC3$Tumor_Sample_Barcode,colnames(GISTIC))
-  
-  MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% common_samples ,]
-  GISTIC <- GISTIC %>% select("Gene Symbol","Locus ID","Cytoband",common_samples)
-
-  
-  #MC3 <- MC3[order(MC3$Hugo_Symbol) ,]
-  #GISTIC <- GISTIC[order(GISTIC$`Gene Symbol`) ,]
-  
-  #Order after order in input vector of samples
-  common_samples <- common_samples[order(match(common_samples,samples))]
-  
-  
-  
-  
-  #Create a matrix of SNVs and CNVs
+  #Common genes
+  common_genes <- intersect(unique(MC3$Hugo_Symbol),rownames(mRNA_DF))
   common_genes <- common_genes[order(match(common_genes,genes))]
   common_genes_DF <- data.frame("Hugo_Symbol"=common_genes)
   
+
+
+  
+  MC3 <- MC3[MC3$Hugo_Symbol %in% common_genes ,]
+  mRNA_DF <- mRNA_DF[rownames(mRNA_DF) %in% common_genes ,]
+  
+
+
+
+  
+  #Select only  samples common between MC3 and mRNA
+  common_samples <- intersect(MC3$Tumor_Sample_Barcode,colnames(mRNA_DF))
+  #Set order to match samples
+  common_samples <- samples[samples %in% common_samples]
+  
+  
+  
+  MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% common_samples ,]
+
+
+
+  
+  #mRNA section
+  
+  
+  #mRNA_DF <- mRNA_DF[order(match(mRNA_DF$`Gene Symbol`,common_genes)) ,]
+  mRNA_DF <- as.data.frame(t(mRNA_DF))
+  mRNA_DF <- setcolorder(mRNA_DF,common_genes)
+  mRNA_DF <- t(mRNA_DF)
+  
+  
+  
+  cancer_vector <- get_cancer_type(colnames(mRNA_DF))
+  cancerDF <- data.frame("Cancer"=cancer_vector,"sample"=colnames(mRNA_DF))
+  
+  
+  
+  
+  mRNA_exp.m <-  matrix(nrow=length(common_samples),ncol = length(common_genes))
+  colnames(mRNA_exp.m) <- common_genes
+  rownames(mRNA_exp.m) <- common_samples
+
+  for (sample in common_samples){
+    
+    
+    cancer_type <- as.character(cancerDF[cancerDF$sample == sample ,1])
+    cancer_samples <- cancerDF %>% filter(Cancer==cancer_type) %>% select(sample)
+    cancer_samples <- as.character(cancer_samples$sample)
+    cancer_samples <- mRNA_DF[, colnames(mRNA_DF) %in% cancer_samples]
+    cancer_samples <- as.matrix(cancer_samples)
+    mode(cancer_samples) <- "numeric"
+    
+   
+    #Normalization / Standardisation
+    norm_cancer_samples <- log2(cancer_samples + 1)
+    #standard_cancer_samples <- (norm_cancer_samples - rowMeans(norm_cancer_samples))/(sd(rowMeans(norm_cancer_samples)))
+    Z_standard_cancer_samples <- apply(norm_cancer_samples, 1, function(x)(x-mean(x))/(sd(x)))
+    
+    
+    tresholded_cancer <-  Z_standard_cancer_samples
+    tresholded_cancer1 <-  Z_standard_cancer_samples
+    
+    
+    
+    tresholded_cancer1[which(tresholded_cancer <= -3)] <- "-3S"
+    tresholded_cancer1[which(tresholded_cancer >=  3)] <- "+3S"
+    tresholded_cancer1[which(tresholded_cancer >=  2 & tresholded_cancer <  3)] <- "+2S"
+    tresholded_cancer1[which(tresholded_cancer <= -2 & tresholded_cancer >  -3)] <- "-2S"
+    tresholded_cancer1[which(tresholded_cancer >  -2 & tresholded_cancer <  2)] <- "0"
+    
+    
+    tresholded_cancer <- t(tresholded_cancer1)
+    tresholded_cancer <- as.vector(tresholded_cancer[, colnames(tresholded_cancer)==sample])
+    
+    
+    
+    
+    
+    mRNA_exp.m[rownames(mRNA_exp.m) == sample] <- tresholded_cancer
+    
+    
+    
+    
+    
+  }
+  
+  
+
+  mRNA_exp.m <- t(mRNA_exp.m)
+  
+
   
   
   matrix_frame <-  matrix(nrow=length(common_genes),ncol = length(common_samples))
@@ -104,23 +146,20 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   rownames(matrix_frame) <- common_genes
   matrix_frame <- as.data.frame(matrix_frame)
   
-  cnv.m <- matrix_frame
   snv.m <- matrix_frame
   
-
+  
   
   #Order after gene order (important for getting the right genes)
   MC3 <- MC3[order(match(MC3$Hugo_Symbol,common_genes))]
-  GISTIC <- GISTIC[order(match(GISTIC$`Gene Symbol`,common_genes)) ,]
+ 
   
   
   
   
   for (sample in common_samples){
     
-    #Create vector for  CN
-    fill_vector_CN <- GISTIC %>% select(`Gene Symbol`,sample)
-    colnames(fill_vector_CN) <- c("Hugo_Symbol","CN")
+
     
     #Create vector for SNV
     fill_vector_SNV <- MC3 %>% filter(MC3$Tumor_Sample_Barcode == sample) %>% select(Hugo_Symbol,Variant_Classification)
@@ -135,25 +174,22 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     
     
     
-    cnv.m[colnames(cnv.m) == sample] <- fill_vector_CN$CN
     snv.m[colnames(snv.m) == sample] <- fill_vector_SNV$Variant_Classification
     
     
   }
   
   
-  cnv.m <- as.matrix(cnv.m)
-  class(cnv.m) <- "numeric"
-  cnv.m   <- cnv.m + 2
-  
+ 
+
   
   snv.m <- as.matrix(snv.m)
   
-  cnv.m <- t(cnv.m)
   snv.m <- t(snv.m)
+  mRNA_exp.m <- t(mRNA_exp.m)
+  mRNA_exp.m[which(mRNA_exp.m == "NaN")] <- "0"
   
   
-  # Catagorize snvs ---------------------------------------------------------
   
   # If there are to many types bundle together unessesary into other
   non_AA_mod <- c("3'Flank","3'UTR","5'Flank","5'UTR","Intron","Silent")
@@ -172,29 +208,36 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   
   #Prepare data for plotting
   
-  if (plot_id ==TRUE){
+  
+  
+  
+  
+  
+  
+  #Prepare data for plotting
+  
+  #if (plot_id ==TRUE){
     
-    test <- ClusterDF %>% filter(gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",TCGA_code) %in% common_samples)
-    test <- as.vector(test$sample)
-    test <- as.character(test)
-    test <- paste(rep("ID: ",length(test)),test,sep="")
-    row.names(snv.m) <- test
-    row.names(cnv.m) <- test
-  }            
-    
- 
+    #test <- ClusterDF %>% filter(gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",TCGA_code) %in% common_samples)
+    #test <- as.vector(test$sample)
+    #test <- as.character(test)
+    #test <- paste(rep("ID: ",length(test)),test,sep="")
+    #row.names(snv.m) <- test
+    #row.names(mRNA_exp.m) <- test
+  #s}            
+  
+  
   
   
   
   
   #Create dataframe in format for GGplot
-  GGdata <- melt(cnv.m)
+  GGdata <- melt(mRNA_exp.m)
   GGdata1 <- melt(snv.m)
-  GGdata$cnvs <- as.factor(GGdata$value)
+  GGdata$mRNA <- as.factor(GGdata$value)
   GGdata$snvs <- as.factor(GGdata1$value)
-  GGdata$cnvs <- as.factor(GGdata$value)
-  GGdata <- GGdata %>% select(Var1,Var2,cnvs,snvs)
-  colnames(GGdata) <- c("sample","gene","cnvs","snvs")
+  GGdata <- GGdata %>% select(Var1,Var2,mRNA,snvs)
+  colnames(GGdata) <- c("sample","gene","mRNA","snvs")
   
   
   
@@ -202,12 +245,12 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   textcol <- "grey40"
   
   #In order to handle sample-selection missing one CNV type
-  cnv_types <- c(0,1,2,3,4)
-  cnv_col <- c("#D55E00", "#E69F00","grey70","#56B4E9","#0072B2")
-  cnv_col_DF <- data.frame("type"=cnv_types,"colour"=cnv_col)
-  types_in_samples <- sort(unique(c(cnv.m)),decreasing=FALSE)
-  cnv_col_DF <- cnv_col_DF %>% filter(type %in% types_in_samples) %>% select(colour)
-  cnv_col <- as.vector(cnv_col_DF$colour)
+  mRNA_types <- c("-3S","-2S","0","+2S","+3S")
+  mRNA_col <- c("#E69F00","#D55E00","#56B4E9","#0072B2","grey70")
+  mRNA_col_DF <- data.frame("type"=mRNA_types,"colour"=mRNA_col)
+  types_in_samples <- unique(names(table(mRNA_exp.m)))
+  mRNA_col_DF <- mRNA_col_DF %>% filter(type %in% types_in_samples) %>% select(colour)
+  mRNA_col <- as.vector(mRNA_col_DF$colour)
   
   
   #For getting vertical lines marking clusters
@@ -223,6 +266,7 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     
   }
   
+  unique(GGdata$mRNA)
   
   
   
@@ -230,19 +274,19 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   
   
   
-  P <- ggplot(GGdata,aes(x=gene,y=sample,fill=cnvs))+
+  P <- ggplot(GGdata,aes(x=gene,y=sample,fill=mRNA))+
     geom_tile()+
     #redrawing tiles to remove cross lines from legend
     geom_tile(colour="white",size=0.25)+
     #remove axis labels, add title
-    labs(x="",y="",title=title1)+
+    labs(x="",y="",title="mRNA/SNV")+
     #remove extra space
     #scale_y_discrete(expand=c(0,0),labels = y_names)+  
     scale_y_discrete(expand=c(0,0))+
     #custom breaks on x-axis
     scale_x_discrete(expand=c(0,0))+
     #custom colours for cut levels and na values
-    scale_fill_manual(values=cnv_col)+
+    scale_fill_manual(values=mRNA_col)+
     #Add snv data (remove NA(ie no mutation))
     geom_point(data=subset(GGdata,!snvs=="NA"), aes(shape=snvs),size=1)+
     scale_shape_manual(values=snv_shapes)+

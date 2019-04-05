@@ -60,9 +60,11 @@ load("MC3.rda")
 #Extract highly mutated samples
 #For convenince S and type is how files are named such as pictures or RDA objects
 
+# 1000 <- N=14, 2000 <- N=8 , 3 <- N=14
 
-S <- 3
-type <- "SD" #SD or absolute
+N <- 8
+S <- 2000
+type <- "absolute" #SD or absolute
 
 high_mutation_samples <- get_high_mutations(MC3,type,S)
 
@@ -70,14 +72,14 @@ high_mutation_samples <- get_high_mutations(MC3,type,S)
 #Subselction of MC3 
 
 #Select genes associated with DNA repair mechanisms
-MC3 <- MC3 %>% filter(Hugo_Symbol %in% DNA_repair$hgnc_symbol)
+#MC3 <- MC3 %>% filter(Hugo_Symbol %in% DNA_repair$hgnc_symbol)
 
 #Select samples with high mutation rates
 MC3 <- MC3 %>% filter(Tumor_Sample_Barcode %in% high_mutation_samples)
 
 
 
-
+  
 # Mutational signatures ---------------------------------------------------
 
 vcf_list <- list.files(path=paste(main_wd,"/VCF_files",sep=""),recursive=TRUE,pattern=".vcf")
@@ -162,7 +164,7 @@ hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 cosmic_order = colnames(cosmic_signatures)[hclust_cosmic$order]
 
 #Plot everything in one pdf.file
-setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures")
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Test")
 pdf(file=paste(S,"_high_mut.pdf"),height=8.27,width =11.69)
 
 
@@ -172,7 +174,7 @@ print(plot_cosine_heatmap(cos_sim_samples_cosmic, col_order = cosmic_order, clus
 
 
 #Cluster samples based on cosine similarity
-N <- 14
+#N <- 14
 sample_cluster <- hclust(dist(cos_sim_samples_cosmic,method="euclidean"),method="complete")
 plot_cluster(sample_cluster,N,2.2)
 
@@ -199,7 +201,42 @@ ClusterDF <- left_join(ClusterDF,mutDF,by="TCGA_code")
 
 
 
-rm(TSS2Study,sampleDF,MC3)
+if(FALSE){
+  #Manipulate extracted cluster
+  #For >1000 cancer. N = 14
+  
+  
+  remove_cluster <- c(4,11,14)
+  ClusterDF <- ClusterDF %>% filter(!cluster %in% remove_cluster)
+  ClusterDF[ClusterDF$cluster == 5 , 2] <- 4  
+  ClusterDF[ClusterDF$cluster == 6 , 2] <- 5
+  ClusterDF[ClusterDF$cluster == 7 , 2] <- 5
+  ClusterDF[ClusterDF$cluster == 8 , 2] <- 6
+  ClusterDF[ClusterDF$cluster == 9 , 2] <- 7
+  ClusterDF[ClusterDF$cluster == 10 , 2] <- 8
+  ClusterDF[ClusterDF$cluster == 12 , 2] <- 9
+  ClusterDF[ClusterDF$cluster == 13 , 2] <- 10
+  
+  plot_cosine_heatmap()
+  
+  
+  
+  
+}
+
+if(FALSE){
+  #Remove small cluster
+  keep_cluster <- ClusterDF %>% dplyr::count(cluster)
+  keep_cluster <- (keep_cluster[keep_cluster$n > 2 , 1])
+  keep_cluster <- keep_cluster$cluster
+  ClusterDF <- ClusterDF[ClusterDF$cluster %in% keep_cluster ,]
+  
+  
+  
+}
+
+
+rm(TSS2Study,sampleDF,MC3,remove_cluster)
 
 
 
@@ -213,8 +250,6 @@ piechart_cancer_cluster(ClusterDF,mfrows=c(round(N/2),2))
 rm(list=ls()[! ls() %in% c("ClusterDF","DNA_repair","S","type","ref_genome","main_wd")])
 
 # CNV_SNV plot ------------------------------------------------------------
-
-
 setwd(main_wd)
 
 #samples <- ClusterDF %>% filter(cluster == 3) %>% select(TCGA_code)
@@ -282,6 +317,8 @@ if(FALSE){
 #genes <- as.character(genes$Gen)
 #genes <- unique(genes) #unrefined gene list
 mRNA_DF <- mRNA_exp(genes)
+
+plot_mRNA_SNV(samples,genes,cluster_names=TRUE,mRNA_DF)
 
 
 

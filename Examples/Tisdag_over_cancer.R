@@ -18,7 +18,7 @@ load("GRange_cohort.rda")
 setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Test")
 
 
-for (i in 4:10){
+for (i in 5:10){
   
   
   

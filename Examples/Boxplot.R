@@ -26,15 +26,15 @@ box_p <- ggplot(Sample_count, aes(x=cancer, y=n)) +
   geom_boxplot() +
   stat_boxplot(geom ='errorbar')+
   #theme_bw()+
-  labs(title="Boxplot",x="Cancer", y = "Number of mutations/sample")+
+  labs(title="",x="Cancer", y = "Number of mutations/sample")+
   #geom_boxplot(coef = 6) +
   geom_boxplot(outlier.colour=NA,outlier.size = 0,outlier.alpha = 0) +
-  coord_cartesian(ylim = c(0, 2000))+
+  coord_cartesian(ylim = c(0, 3500))+
   theme_minimal()+
   theme(axis.text.x=element_text(vjust = 0.5,size=8,angle = 90))
 
   
-
+box_p
 
 #In order to remove outliers, since outlier.colour=NA doesnt work
 library(plotly)
