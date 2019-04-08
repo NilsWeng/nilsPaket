@@ -156,7 +156,7 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   # Catagorize snvs ---------------------------------------------------------
   
   # If there are to many types bundle together unessesary into other
-  non_AA_mod <- c("3'Flank","3'UTR","5'Flank","5'UTR","Intron","Silent")
+  non_AA_mod <- c("3'Flank","3'UTR","5'Flank","5'UTR","Intron","Silent","RNA")
   frame_shift <- c("Frame_Shift_Del","Frame_Shift_Ins")
   expression <- c("Splice_Site","Translation_Start_Site")
   inframe    <-c("In_Frame_Del","In_Frame_Ins")

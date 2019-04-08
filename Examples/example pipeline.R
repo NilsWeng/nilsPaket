@@ -48,6 +48,9 @@ if(!file.exists("MC3.rda")){
 }
 load("MC3.rda")
 
+
+ 
+
 #Random samples
 #random_samples <- unique(MC3$Tumor_Sample_Barcode)
 #random_samples <- sample(random_samples,200)
@@ -62,9 +65,9 @@ load("MC3.rda")
 
 # 1000 <- N=14, 2000 <- N=8 , 3 <- N=14
 
-N <- 8
-S <- 2000
-type <- "absolute" #SD or absolute
+N <- 14
+S <- 3
+type <- "SD" #SD or absolute
 
 high_mutation_samples <- get_high_mutations(MC3,type,S)
 
@@ -163,9 +166,9 @@ hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
 #store signatures in new order
 cosmic_order = colnames(cosmic_signatures)[hclust_cosmic$order]
 
-#Plot everything in one pdf.file
+#Plot everything in one pdf.file  PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF PDF
 setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Test")
-pdf(file=paste(S,"_high_mut.pdf"),height=8.27,width =11.69)
+#pdf(file=paste(S,"_high_mut.pdf"),height=8.27,width =11.69)
 
 
 #plot cosine_heatmap
@@ -273,7 +276,7 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
-plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=TRUE,cluster_names = TRUE)
+plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=FALSE,cluster_names = FALSE)
 
 
 
@@ -448,7 +451,7 @@ for (i in 1:length(unique(ClusterDF$cluster))){
                                                    Variant_Classification,HGVSp_Short)
   
   common_mutations <- common_mutations[order(common_mutations$n,decreasing = TRUE),]
-  test <- head(common_mutations,30)
+  test <- head(common_mutations,10)
   test <- test %>% select(n,Hugo_Symbol,HGVSp_Short,Variant_Classification)
   
   

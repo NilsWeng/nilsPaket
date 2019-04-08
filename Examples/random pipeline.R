@@ -51,7 +51,7 @@ load("MC3.rda")
 
 #Random samples
 random_samples <- unique(MC3$Tumor_Sample_Barcode)
-random_samples <- sample(random_samples,200)
+random_samples <- sample(random_samples,300)
 
 high_mutation_samples <- random_samples
 
@@ -60,7 +60,7 @@ high_mutation_samples <- random_samples
 
 #Extract highly mutated samples
 #Stopped working all of a sudden , cant find Tumor_Sample_Barcode
-S <- "random2"
+S <- "random4"
 type <- "SD" #SD or absolute
 
 #high_mutation_samples <- get_high_mutations(MC3,type,S)
@@ -158,7 +158,7 @@ cos_sim_samples_cosmic <- cos_sim_matrix(mutational_matrix, cosmic_signatures)
 
 
 
-setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures/Random_new")
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures")
 pdf(paste(S,".pdf"),height=8.27,width =11.69)
 
 
@@ -184,7 +184,7 @@ N <- length(unique(cutreeDynamicTree(sample_cluster,maxTreeHeight = 16,deepSplit
 
 if (N < 5 ){
   
-  N <- 5
+  N <- 10
 }
 
 
@@ -265,6 +265,7 @@ print(plot_CNV_SNV(samples,genes,S,plot_id = TRUE,cluster_names = TRUE))
 # mRNA Exp ----------------------------------------------------------------
 
 mRNA_DF <- mRNA_exp(genes)
+plot_mRNA_SNV(samples,genes,cluster_names=TRUE,mRNA_DF)
 
 
 setwd(main_wd)
