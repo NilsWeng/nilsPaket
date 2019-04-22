@@ -62,7 +62,6 @@ load("MC3.rda")
 
 #Extract highly mutated samples
 #For convenince S and type is how files are named such as pictures or RDA objects
-
 # 1000 <- N=14, 2000 <- N=8 , 3 <- N=14
 
 N <- 14
@@ -270,13 +269,12 @@ samples <- ClusterDF %>% select(TCGA_code)
 samples <- as.character(samples$TCGA_code)
 samples <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",samples)
 
-
 genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 #genes <- genes %>% filter(System == "BER")
 genes <- as.character(genes$Gen)
 
 
-plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=FALSE,cluster_names = FALSE)
+plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=FALSE,cluster_names = TRUE)
 
 
 
@@ -473,8 +471,10 @@ for (i in 1:length(unique(ClusterDF$cluster))){
 
 }
 
-
+library(formattable)
 library(kableExtra)
+colnames(table_to_print) <-  c("Number of occurrences","Hugo Symbol","Amino acid change","Variant Classification","cluster")               
+
 print(formattable(table_to_print,align="l"))
 #print(kable_styling(kable(table_to_print)))
 

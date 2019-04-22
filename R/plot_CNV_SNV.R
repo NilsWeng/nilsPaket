@@ -194,9 +194,12 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   GGdata$snvs <- as.factor(GGdata1$value)
   GGdata$cnvs <- as.factor(GGdata$value)
   GGdata <- GGdata %>% select(Var1,Var2,cnvs,snvs)
+  
+
+
   colnames(GGdata) <- c("sample","gene","cnvs","snvs")
   
-  
+
   
   snv_shapes <-  c(0,1,2,3,6)
   textcol <- "grey40"
@@ -223,10 +226,16 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     
   }
   
-  
-  
-  
-  
+  #Cancer id as y axis labels
+  if(FALSE){
+    samples_id <- data.frame("sample"=rownames(cnv.m))
+    test <- ClusterDF %>% select(TCGA_code,Study.Abbreviation)
+    colnames(test) <- c("sample","cancer")
+    test$sample <- gsub("-[A-Z0-9]*-[A-Z0-9]*-[A-Z0-9]*$","",test$sample)
+    samples_id <- left_join(samples_id,test,by="sample")
+    
+  }
+
   
   
   
@@ -237,8 +246,8 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     #remove axis labels, add title
     labs(x="",y="",title=title1)+
     #remove extra space
-    #scale_y_discrete(expand=c(0,0),labels = y_names)+  
-    scale_y_discrete(expand=c(0,0))+
+    scale_y_discrete(expand=c(0,0))+  
+    #scale_y_discrete(labels=samples_id$cancer)+
     #custom breaks on x-axis
     scale_x_discrete(expand=c(0,0))+
     #custom colours for cut levels and na values
