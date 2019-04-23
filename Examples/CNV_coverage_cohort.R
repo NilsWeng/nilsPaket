@@ -20,7 +20,7 @@ threshold_df <- do.call("rbind", lapply(treshold_files_df, as.data.frame))
 rm(treshold_files,treshold_files_df)
 
 
-#Tot length Excluding Y-chromosome (Chr1-X)
+#Tot length Excluding Y-chromosome (Chr1-X) Ask malin
 tot_hg19_length <- 3036303846
 
 
@@ -33,8 +33,8 @@ CN_coverage <- function(sample){
   
   #Deep amp/del filtering
   #sample_id <- as.character(unique(sample$Sample))
-  #high_thresh <- threshold_df %>% filter(Sample == sample_id) %>% select(High)
-  #low_thresh <- threshold_df %>% filter(Sample == sample_id) %>% select(Low)
+  #high_thresh <- as.numeric(threshold_df %>% filter(Sample == sample_id) %>% select(High))
+  #low_thresh <- as.numeric(threshold_df %>% filter(Sample == sample_id) %>% select(Low))
   #CNV_regions <- sample %>% filter(sample$Seg.CN >= high_thresh  | sample$Seg.CN <= low_thresh  )
   
   

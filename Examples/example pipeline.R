@@ -150,7 +150,7 @@ cosmic_signatures <- as.matrix(read.table("cosmic_signatures_extended.txt",heade
 #Just plot number in heatmap.
 sampleDF <- data.frame("TCGA_code"=colnames(mutational_matrix))
 sampleDF$sample <- c(1:ncol(mutational_matrix))
-colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
+#colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
 
 
 #Shorten TCGA-barcode
@@ -238,13 +238,22 @@ if(FALSE){
 }
 
 
-rm(TSS2Study,sampleDF,MC3,remove_cluster)
+rm(TSS2Study,sampleDF,MC3)
 
 
 
 #Find signatures in cluster
 #Make sure that rownames of cos_sim matches ClusterDF$samples
-get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
+#get_signature(ClusterDF,cos_sim_samples_cosmic,0.6)
+
+
+#Main contributing signatures. (Those needed to achieve the threshold 
+#cosine simililarity between reconstruction and original)
+get_contributing_signatures(ClusterDF,cos_sim_samples_cosmic,
+                            mutational_matrix,threshold = 0.90)
+
+
+
 
 piechart_cancer_cluster(ClusterDF,mfrows=c(round(N/2),2))
 
