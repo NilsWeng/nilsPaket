@@ -93,7 +93,8 @@ box_p <- ggplot(coverage_DF, aes(x=reorder(cancer,CNV_coverage,FUN = median), y=
   geom_boxplot(outlier.colour=NA,outlier.size = 0,outlier.alpha = 0) +
   #coord_cartesian(ylim = c(0, 3500))+
   theme_minimal()+
-  theme(axis.text.x=element_text(vjust = 0.5,size=8,angle = 90))
+  theme(axis.text.x=element_text(vjust = 0.5,size=rel(1.5),angle = 90),
+        axis.title=element_text(size=rel(1.5),face="bold"))
 
 
 box_p

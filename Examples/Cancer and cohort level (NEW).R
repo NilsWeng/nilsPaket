@@ -87,3 +87,105 @@ for (cancer_file in mut_mat_files){
 contribution_DF <- contribution_DF %>% filter(Contribution > 0)
 
 test <- dplyr::count(contribution_DF,Signature)
+
+
+
+
+
+# Extract de-novo signatures for each cancer  -----------------------------
+
+rm(list=ls())
+gc()
+#Library
+library(nilsPaket)
+library(dplyr)
+library(MutationalPatterns)
+library(BSgenome)
+library(gridExtra)
+library("BSgenome.Hsapiens.UCSC.hg19", character.only = TRUE)
+library("NMF")
+
+
+main_wd <- "C:/Users/Nils_/OneDrive/Skrivbord/Main/Data"
+setwd(main_wd)
+cosmic_signatures <- as.matrix(read.table("cosmic_signatures_extended.txt",header=TRUE))
+
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Data/output/NEW_COHORT")
+mut_mat_files <- list.files()
+mut_mat_files <- mut_mat_files[grep("_mut_matrix.txt",mut_mat_files)]
+
+
+
+cohort_mut_mat <- list()
+
+
+for (file_name in mut_mat_files){
+  
+  
+  
+  cancer <- gsub("_..*$","",file_name)
+  setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Data/output/NEW_COHORT")
+  cancer_mut_mat <- read.table(file_name,header=TRUE)
+  colnames(cancer_mut_mat) <- gsub("\\.","-",colnames(cancer_mut_mat))
+  
+  #Filter away high_mut samples
+  if(TRUE){
+    
+    number_mut_vec <- as.numeric(colSums(cancer_mut_mat))
+    m <- median(number_mut_vec)
+    s <- sd(number_mut_vec)
+    to_keep <- which(number_mut_vec < (m+3*s))
+    
+    cancer_mut_mat <- cancer_mut_mat[, to_keep]
+    
+    
+  }
+  
+  
+  cohort_mut_mat[[cancer]] <- rowSums(cancer_mut_mat)
+  
+  
+}
+
+
+cohort_mut_mat <- do.call(rbind, cohort_mut_mat)
+cohort_mut_mat <- t(cohort_mut_mat)
+
+setwd("C:/Users/Nils_/OneDrive/Skrivbord/Main/Pictures")
+pdf("De-novo.pdf",width=16, height=10)
+
+#Find rank optimisation
+cohort_mut_mat <- cohort_mut_mat + 0.0001
+#estimate <- nmf(cohort_mut_mat, rank=2:12, method="brunet", nrun=10, seed=123456)
+#plot(estimate)
+
+
+#Extract de novo signatures
+number_of_signatures <- 4
+de_novo <- extract_signatures(cohort_mut_mat, rank = number_of_signatures, nrun = 10)
+colnames(de_novo$signatures) <- c(paste(rep("De-novo",number_of_signatures),c(1:number_of_signatures),sep=" "))
+rownames(de_novo$contribution) <- c(paste(rep("De-novo",number_of_signatures),c(1:number_of_signatures),sep=" "))
+
+
+plot_96_profile(de_novo$signatures, condensed = TRUE)
+
+
+#Plot
+pc1 <- plot_contribution(de_novo$contribution, de_novo$signature,mode = "relative")
+#Visualize the contribution of the signatures in absolute number of mutations:
+pc2 <- plot_contribution(de_novo$contribution, de_novo$signature,mode = "absolute")
+#Combine the two plots:
+grid.arrange(pc1, pc2)
+
+
+#Cosine similiarity between de-novo and extracted
+cos_similarity_signatures <- cos_sim_matrix(de_novo$signatures, cosmic_signatures)
+
+hclust_cosmic = cluster_signatures(cosmic_signatures, method = "average")
+# store signatures in new order
+cosmic_order = colnames(cosmic_signatures)[hclust_cosmic$order]
+
+
+plot_cosine_heatmap(cos_similarity_signatures,col_order = cosmic_order,cluster_rows = TRUE)
+
+dev.off()

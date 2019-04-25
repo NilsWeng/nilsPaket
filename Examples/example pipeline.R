@@ -249,8 +249,129 @@ rm(TSS2Study,sampleDF,MC3)
 
 #Main contributing signatures. (Those needed to achieve the threshold 
 #cosine simililarity between reconstruction and original)
-get_contributing_signatures(ClusterDF,cos_sim_samples_cosmic,
-                            mutational_matrix,threshold = 0.90)
+contributing_signatures <- get_contributing_signatures(ClusterDF,cos_sim_samples_cosmic,
+                            mutational_matrix,threshold = 0.975)
+
+contributing_signatures
+
+
+###############################################################TRY GETTING RIGHT SIGNATURE 
+
+Cluster_id <- 1
+signatures <- contributing_signatures$`cluster 1`
+
+pop_signatures <- function(signatures,Cluster_id){
+  
+  
+  samples_in_cluster <- as.vector(ClusterDF %>% filter(cluster == Cluster_id) %>% select(sample))
+  samples_in_cluster <- samples_in_cluster$sample
+  Mut_Mat_Cluster <- mutational_matrix[, colnames(mutational_matrix) %in% samples_in_cluster]
+  cosmic_in_cluster <- cosmic_signatures[, colnames(cosmic_signatures) %in% signatures]
+  
+
+  
+  may_i_pop <- function(signature_to_pop,all_signatures){
+    
+    #With
+    signatures_to_use <- cosmic_in_cluster[, colnames(cosmic_in_cluster) %in% all_signatures]
+    fit_sign <- fit_to_signatures(Mut_Mat_Cluster,signatures_to_use)
+    cos_sim_original_reconstructed <- cos_sim_matrix(Mut_Mat_Cluster, fit_sign$reconstructed)
+    cos_sim_original_reconstructed <- as.data.frame(diag(cos_sim_original_reconstructed))
+    with_cossim <- cos_sim_original_reconstructed
+    
+    #Without pop_sign
+    signatures_to_use <- all_signatures[!all_signatures == signature_to_pop]
+    signatures_to_use <- cosmic_in_cluster[, colnames(cosmic_in_cluster) %in% signatures_to_use]
+    fit_sign <- fit_to_signatures(Mut_Mat_Cluster,signatures_to_use)
+    cos_sim_original_reconstructed <- cos_sim_matrix(Mut_Mat_Cluster, fit_sign$reconstructed)
+    cos_sim_original_reconstructed <- as.data.frame(diag(cos_sim_original_reconstructed))
+    without_cossim <- cos_sim_original_reconstructed
+    
+    
+    
+    
+    p_val <- t.test(with_cossim,without_cossim)$p.value
+    print(p_val)
+    print(signature_to_pop)
+    
+    
+    
+    return(p_val > 0.40)
+    
+    
+  }
+  
+  
+  
+  #loop until no signature can be removed without significantly changing cossim
+  checked_sign <- 0
+  i <- 0
+  counter <- 1
+  tot_sign <- length(signatures)
+  #sucess <- FALSE
+  
+  while(TRUE){
+    
+    
+    print(paste("#sign",length(signatures),sep="="))
+    print(paste("i",i,sep="="))
+    counter <- counter + 1
+    
+    if (may_i_pop(signatures[length(signatures)-i],signatures) == TRUE){
+      
+      signatures <- signatures[!signatures == signatures[length(signatures)-i]]
+      #signatures <- head(signatures,-1)
+      checked_sign <- 0
+      #tot_sign <- length(signatures)
+      
+      
+    }else{
+      i <-  i + 1
+      checked_sign <- checked_sign + 1
+    }
+    
+    #print(checked_sign)
+    #print(signatures)
+    #(length(signatures) == 2 | checked_sign == (tot_sign-1))
+    
+    if (counter == tot_sign - 2){
+      
+      break()
+    }
+    
+    
+    
+
+    
+  }
+  
+  print(paste("FOUND SIGNATURES:",signatures,sep=""))
+  
+}
+
+#----------------------------------------------------------------------------------------------------------------
+
+
+
+
+apply(contributing_signatures,function(x)data.frame(paste(x,collapse=",")))
+
+empty_df <- data.frame()
+
+for (item in contributing_signatures){
+  
+
+  empty_df <- rbind(empty_df,data.frame("signature"=paste(item,collapse = ",")))
+  
+  
+}
+
+empty_df <- data.frame("Cluster"=names(contributing_signatures),"Signature"=as.vector(empty_df))
+empty_df$Cluster <- gsub("cluster","",empty_df$Cluster)
+
+
+library(formattable)
+print(formattable(empty_df,align="l"))
 
 
 

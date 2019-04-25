@@ -1,0 +1,2 @@
+Cancer and cohort level: Uses mutational matrices created by ... and finds what COSMIC signatures are the main contributors. Extract de-novo signatures for each cancer- cohort level.
+

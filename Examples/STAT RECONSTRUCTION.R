@@ -23,11 +23,13 @@
 
 
 
-get_contributing_signatures <- function(ClusterDF,cos_sim_samples_cosmic,mutational_matrix,threshold) {
+get_contributing_signatures_significance <- function(ClusterDF,cos_sim_samples_cosmic,mutational_matrix,threshold) {
   
- 
+  
   
   contributing_signatures <- function(cluster_id){
+    
+    
     
     clust_samples <- ClusterDF %>% filter(cluster == cluster_id) %>% select(sample)
     
@@ -41,25 +43,37 @@ get_contributing_signatures <- function(ClusterDF,cos_sim_samples_cosmic,mutatio
     #Reconstruc mutational profile using top signature
     clust_mut_mat <- mutational_matrix[, colnames(mutational_matrix) %in% clust_samples]
     
-    for (i in 2:length(top_sign)){
+    #Function needed for loop
+    get_cosim <- function(counter){
       
-      signatures_to_use <- top_sign[1:i]
+      signatures_to_use <- top_sign[1:counter]
       signatures_to_use <- cosmic_signatures[, colnames(cosmic_signatures) %in% signatures_to_use]
       fit_sign <- fit_to_signatures(clust_mut_mat,signatures_to_use)
-      
       
       #How well are the mutational profiles reconstructed using the top i signatures? 
       cos_sim_original_reconstructed <- cos_sim_matrix(clust_mut_mat, fit_sign$reconstructed)
       cos_sim_original_reconstructed <- as.data.frame(diag(cos_sim_original_reconstructed))
+      return(cos_sim_original_reconstructed)
+      
+    }
+    
+    
+    
+    
+    cosine_similiarity_DF <- data.frame()
+    
+    for (i in 2:length(top_sign)){
       
       
-      mean_cossim_reconstruct <- as.numeric(colMeans(cos_sim_original_reconstructed))
+      
+      #get_cosim(i)
+      #get_cosim(i+1)
+      
+      p_val <- t.test(get_cosim(i),get_cosim(i+1))$p.value
+      
 
       
-      
-      
-      
-      if(mean_cossim_reconstruct >= threshold){
+      if(p_val >= 0.05){
         
         prominent_signatures <- top_sign[1:i]
         return(prominent_signatures)
@@ -70,11 +84,9 @@ get_contributing_signatures <- function(ClusterDF,cos_sim_samples_cosmic,mutatio
       
       
     }
+
     
     
-    #return(prominent_signatures)
-    
-   
     
   }
   
@@ -85,13 +97,13 @@ get_contributing_signatures <- function(ClusterDF,cos_sim_samples_cosmic,mutatio
   cluster_ids <- names(table(ClusterDF$cluster)[(table(ClusterDF$cluster) > 1)])
   cluster_ids <- as.vector(cluster_ids)
   
-
+  
   prominent_signatures <- lapply(cluster_ids,contributing_signatures)
   names(prominent_signatures) <- paste("cluster ",cluster_ids,sep="")
   prominent_signatures
- 
-  
-
   
   
-  }
+  
+  
+  
+}
