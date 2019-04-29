@@ -150,7 +150,7 @@ cosmic_signatures <- as.matrix(read.table("cosmic_signatures_extended.txt",heade
 #Just plot number in heatmap.
 sampleDF <- data.frame("TCGA_code"=colnames(mutational_matrix))
 sampleDF$sample <- c(1:ncol(mutational_matrix))
-#colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
+colnames(mutational_matrix) <- c(1:ncol(mutational_matrix))
 
 
 #Shorten TCGA-barcode
@@ -208,7 +208,7 @@ if(FALSE){
   #For >1000 cancer. N = 14
   
   
-  remove_cluster <- c(4,11,14)
+  remove_cluster <- c(5,10,13,14)
   ClusterDF <- ClusterDF %>% filter(!cluster %in% remove_cluster)
   ClusterDF[ClusterDF$cluster == 5 , 2] <- 4  
   ClusterDF[ClusterDF$cluster == 6 , 2] <- 5
@@ -226,11 +226,12 @@ if(FALSE){
   
 }
 
-if(FALSE){
+if(TRUE){
   #Remove small cluster
   keep_cluster <- ClusterDF %>% dplyr::count(cluster)
-  keep_cluster <- (keep_cluster[keep_cluster$n > 2 , 1])
+  keep_cluster <- (keep_cluster[keep_cluster$n > 3 , 1])
   keep_cluster <- keep_cluster$cluster
+  
   ClusterDF <- ClusterDF[ClusterDF$cluster %in% keep_cluster ,]
   
   
@@ -250,7 +251,36 @@ rm(TSS2Study,sampleDF,MC3)
 #Main contributing signatures. (Those needed to achieve the threshold 
 #cosine simililarity between reconstruction and original)
 contributing_signatures <- get_contributing_signatures(ClusterDF,cos_sim_samples_cosmic,
-                            mutational_matrix,threshold = 0.975)
+                            mutational_matrix,threshold = 0.90)
+
+
+library(gridExtra)
+library(grid)
+library(rowr)
+
+contributing_signatures_DF <- data.frame()
+
+for (i in 1:length(contributing_signatures)){
+ 
+  
+  signatures_vector <- paste(contributing_signatures[[i]],collapse=",")
+  name_vector <- names(contributing_signatures)[i]
+  append_df <- data.frame("Cluster" = name_vector,"Prominent signatures" = signatures_vector)
+  
+  print(append_df)
+  
+  contributing_signatures_DF <- rbind(contributing_signatures_DF,append_df)
+  
+}
+
+colnames(contributing_signatures_DF) <- c("Cluster","Prominent Signatures")
+
+
+#pdf(file = "contsign.pdf", height = 12, width = 26)
+grid.newpage()
+grid.table(contributing_signatures_DF,rows = NULL)
+#dev.off()
+
 
 contributing_signatures
 
@@ -404,7 +434,9 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
+
 plot_CNV_SNV(samples,genes,"High mutation samples",plot_id=FALSE,cluster_names = TRUE)
+
 
 
 

@@ -82,7 +82,7 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   
   MC3 <- MC3[MC3$Tumor_Sample_Barcode %in% common_samples ,]
   GISTIC <- GISTIC %>% select("Gene Symbol","Locus ID","Cytoband",common_samples)
-
+  
   
   #MC3 <- MC3[order(MC3$Hugo_Symbol) ,]
   #GISTIC <- GISTIC[order(GISTIC$`Gene Symbol`) ,]
@@ -107,7 +107,7 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   cnv.m <- matrix_frame
   snv.m <- matrix_frame
   
-
+  
   
   #Order after gene order (important for getting the right genes)
   MC3 <- MC3[order(match(MC3$Hugo_Symbol,common_genes))]
@@ -181,8 +181,8 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     row.names(snv.m) <- test
     row.names(cnv.m) <- test
   }            
-    
- 
+  
+  
   
   
   
@@ -195,11 +195,11 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
   GGdata$cnvs <- as.factor(GGdata$value)
   GGdata <- GGdata %>% select(Var1,Var2,cnvs,snvs)
   
-
-
+  
+  
   colnames(GGdata) <- c("sample","gene","cnvs","snvs")
   
-
+  
   
   snv_shapes <-  c(0,1,2,3,6)
   textcol <- "grey40"
@@ -235,7 +235,7 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     samples_id <- left_join(samples_id,test,by="sample")
     
   }
-
+  
   
   
   
@@ -291,20 +291,20 @@ plot_CNV_SNV <- function(samples,genes,title1,plot_id,cluster_names=FALSE){
     
     library(grid)
     library(zoo)
-    top <- 0.92 # 0,96
+    top <- 0.945 # 0,96
     bot <- 0.09
     
     units <- (top-bot)/length(common_samples)
     hline_pos1 <- c(0,hline_pos)
     hline_pos1 <- rollmean(hline_pos1,k=2)
     hline_pos1 <- units * hline_pos1
-    hline_pos1 <- hline_pos1 + 0.12 #0,08
+    hline_pos1 <- hline_pos1 + 0.10 #0,08
     
     
-    my_text <- paste(rep("Cluster" , length(unique(ClusterDF$cluster))),unique(ClusterDF$cluster),sep=" ")
+    my_text <- unique(ClusterDF$cluster)
     #my_text <- paste(rep("Cluster",14),c(1:14),sep=" ")
     
-    grid.text(my_text,x=0.05, y=hline_pos1[1:14],gp=gpar(col="firebrick", fontsize=10, fontface="bold"))
+    grid.text(my_text,x=0.05, y=hline_pos1[1:length(unique(ClusterDF$cluster))],gp=gpar(col="firebrick", fontsize=7, fontface="bold"))
     
     
   }
