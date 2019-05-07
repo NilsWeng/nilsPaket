@@ -67,7 +67,7 @@ plot_cluster_in_cosine <- function(cluster,cos_sim_matrix,N){
     geom_hline(yintercept=hline_pos)+
     coord_cartesian(clip = 'off') +
     theme_bw() + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5,size=6),
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5,size=12),
           #axis.text.y = element_text(size=6),
           axis.title.y=element_blank(), # These 3 followin are new
           axis.text.y=element_blank(),
@@ -80,20 +80,18 @@ plot_cluster_in_cosine <- function(cluster,cos_sim_matrix,N){
   
   
   
-  
-  
-  
+ 
   
   library(grid)
   
   top <- 0.98
-  bot <- 0.09
+  bot <- 0.085
   
   units <- (top-bot)/length(sample_order)
   hline_pos <- c(0,hline_pos)
   hline_pos <- rollmean(hline_pos,k=2)
   hline_pos <- units * hline_pos
-  hline_pos <- hline_pos + 0.08
+  hline_pos <- hline_pos + 0.085
   
   
   my_text <- paste(rep("Cluster",N),cluster_order,sep=" ")

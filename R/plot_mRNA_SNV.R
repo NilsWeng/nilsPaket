@@ -302,9 +302,11 @@ plot_mRNA_SNV <- function(samples,genes,cluster_names=FALSE,mRNA_DF){
       #set a slim legend
       legend.key.width=grid::unit(0.4,"cm"),
       #set x axis text size and colour
-      axis.text.x=element_text(colour="black",angle=90, hjust=1,vjust = 0.5,size=5),
+      axis.text.x=element_text(colour="black",angle=90, hjust=1,vjust = 0.5,size=8),
       #set y axis text colour and adjust vertical justification
-      axis.text.y=element_text(vjust = 0.5,size=5),
+      #axis.text.y=element_text(vjust = 0.5,size=5),
+      axis.text.y=element_blank(),
+      axis.ticks.y=element_blank(),
       #change axis ticks thickness
       axis.ticks=element_line(size=0.4),
       #change title font, size, colour and justification
@@ -324,14 +326,14 @@ plot_mRNA_SNV <- function(samples,genes,cluster_names=FALSE,mRNA_DF){
     
     library(grid)
     library(zoo)
-    top <- 0.96
+    top <- 0.92 #0,96
     bot <- 0.09
     
     units <- (top-bot)/length(common_samples)
     hline_pos1 <- c(0,hline_pos)
     hline_pos1 <- rollmean(hline_pos1,k=2)
     hline_pos1 <- units * hline_pos1
-    hline_pos1 <- hline_pos1 + 0.08
+    hline_pos1 <- hline_pos1 + 0.12 #0,08
     
     
     my_text <- paste(rep("Cluster" , length(unique(ClusterDF$cluster))),unique(ClusterDF$cluster),sep=" ")

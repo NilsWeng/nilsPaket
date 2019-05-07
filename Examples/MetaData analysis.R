@@ -125,7 +125,7 @@ metadata_DF <- rbind(metadata_DF,tot_vect)
 
 
 
-colnames(metadata_DF) <- c("Study Abrbeviation","Study Name","MC3","GISTIC","mRNA expression","Shared between all data types")
+colnames(metadata_DF) <- c("Study Abrbeviation","Study Name","SNV","CNV","mRNA expression","In all data types")
 library(formattable)
 print(formattable(metadata_DF,align="l"))
 
@@ -138,4 +138,7 @@ pdf(file = "myfile.pdf", height = 12, width = 26)
 grid.newpage()
 grid.table(metadata_DF[1:34, ],rows = NULL)
 dev.off()
+
+
+
 

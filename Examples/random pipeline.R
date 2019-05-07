@@ -215,6 +215,19 @@ ClusterDF <- left_join(ClusterDF,mutDF,by="TCGA_code")
 
 rm(TSS2Study,sampleDF,MC3)
 
+#Test avarage mutational load in each cluster
+
+for (i in unique(ClusterDF$cluster)){
+  
+  sub_DF <- ClusterDF %>% filter(cluster == i)
+  mean(sub_DF$mutations)
+  
+  print(paste("cluster:",i,sep=" "))
+  print(paste("mean mut",mean(sub_DF$mutations),sep=" "))
+}
+
+
+
 
 
 #Find signatures in cluster
@@ -249,7 +262,8 @@ genes <- read.table("gen_lista.csv",header=TRUE,sep=";")
 genes <- as.character(genes$Gen)
 
 
-print(plot_CNV_SNV(samples,genes,S,plot_id = TRUE,cluster_names = TRUE))
+
+print(plot_CNV_SNV(samples,genes,"Reference",plot_id = TRUE,cluster_names = TRUE))
 
 
 

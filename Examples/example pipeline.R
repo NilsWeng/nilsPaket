@@ -64,11 +64,16 @@ load("MC3.rda")
 #For convenince S and type is how files are named such as pictures or RDA objects
 # 1000 <- N=14, 2000 <- N=8 , 3 <- N=14
 
-N <- 14
-S <- 3
-type <- "SD" #SD or absolute
+#N <- 14
+#S <- 3
+#type <- "SD" #SD or absolute
+#high_mutation_samples <- get_high_mutations(MC3,type,S)
 
-high_mutation_samples <- get_high_mutations(MC3,type,S)
+
+S <- 0.975
+type <- "CNV"
+high_mutation_samples <- get_high_CNV_samples(S)
+#MC3 <- MC3 %>% filter(Tumor_Sample_Barcode %in% high_mutation_samples)
 
 
 #Subselction of MC3 
@@ -599,7 +604,7 @@ genes <- as.character(genes$Gen)
 
 table_to_print <- tibble()
 
-for (i in 1:length(unique(ClusterDF$cluster))){
+for (i in unique(ClusterDF$cluster)){
   
 
   
@@ -632,6 +637,12 @@ for (i in 1:length(unique(ClusterDF$cluster))){
   
 
 }
+colnames(table_to_print) <-  c("Number of occurrences","Hugo Symbol","Amino acid change","Variant Classification","cluster")  
+
+library(gridExtra)
+library(grid)
+grid.table(table_to_print,rows = NULL)
+
 
 library(formattable)
 library(kableExtra)
@@ -640,3 +651,8 @@ colnames(table_to_print) <-  c("Number of occurrences","Hugo Symbol","Amino acid
 print(formattable(table_to_print,align="l"))
 #print(kable_styling(kable(table_to_print)))
 
+
+for (cluster in unique(ClusterDF$cluster)){
+  
+  print(cluster)
+}
